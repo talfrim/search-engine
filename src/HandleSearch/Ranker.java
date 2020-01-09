@@ -1,6 +1,8 @@
 package HandleSearch;
 
 import TermsAndDocs.Docs.Document;
+import datamuse.DatamuseQuery;
+import datamuse.JSONParse;
 
 import java.util.ArrayList;
 
@@ -30,7 +32,7 @@ public class Ranker {
     /**
      * The percentage given to the query when calculating the rank in case of taking into account
      * the semantically close words.
-     * 1 minus this variable will be the percentage
+     * 1 minus this variable will be the percentage of the semantically close words.
      */
     private final double weightOfQuery = 0.65;
 
@@ -76,7 +78,23 @@ public class Ranker {
      * @return array of similar words
      */
     private ArrayList<String> getSemanticlyCloseWords() {
-        return null;
+        ArrayList<String> output = new ArrayList<>();
+        DatamuseQuery datamuseQuery = new DatamuseQuery();
+        JSONParse jSONParse = new JSONParse();
+
+        for (String word:queryWords) {
+            String initCloseWords = datamuseQuery.findSimilar(word);
+            String[] parsedCloseWords = jSONParse.parseWords(initCloseWords);
+            addArrayToList(parsedCloseWords,output);
+        }
+        return output;
+    }
+
+    private void addArrayToList(String[] parsedCloseWords, ArrayList<String> output) {
+        for (String word:parsedCloseWords
+             ) {
+            output.add(word);
+        }
     }
 
 
