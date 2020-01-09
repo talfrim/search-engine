@@ -5,6 +5,10 @@ import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
+/**
+ * implements Runnable class - for the purpose of running simultaneously through different files in order to find doc
+ * using it's ID (docNo)
+ */
 public class FindDocData implements Runnable {
     private static Pattern splitByDotCom= Pattern.compile("[\\;]");
     private BufferedReader reader;
@@ -21,6 +25,10 @@ public class FindDocData implements Runnable {
         return docData;
     }
 
+    /**
+     * searching for doc in file
+     * saving it's line of properties
+     */
     @Override
     public void run() {
         String line = null;
