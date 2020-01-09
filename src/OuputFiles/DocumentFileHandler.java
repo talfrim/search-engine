@@ -6,6 +6,8 @@ import TermsAndDocs.Terms.Term;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 /**
  * this class is responsible for writing and writing the docs files
@@ -28,11 +30,11 @@ public class DocumentFileHandler {
      * @param header
      */
     public void writeDocumentDataToFile(String docNo, int numOfUniqueTerms, int mostCommonTermCounter, Term mostCommmonTerm,
-                                        DocumentDateTerm documentDateTerm, String header) {
+                                        DocumentDateTerm documentDateTerm, String header, HashSet<Term> entities) {
 
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(docNo);
-        stringBuilder.append(":");
+        stringBuilder.append(";");
         stringBuilder.append(numOfUniqueTerms);
         stringBuilder.append(";");
         stringBuilder.append(mostCommmonTerm.getData());
@@ -42,7 +44,14 @@ public class DocumentFileHandler {
         stringBuilder.append(documentDateTerm.getData());
         stringBuilder.append(";");
         stringBuilder.append(header);
-        stringBuilder.append(";\n");
+        stringBuilder.append(";");
+        stringBuilder.append("ENTITIES:");
+        for (Term entity: entities) {
+            stringBuilder.append(entity.getData());
+            stringBuilder.append(";");
+        }
+        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+        stringBuilder.append("\n");
 
 
         try {

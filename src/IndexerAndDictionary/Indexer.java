@@ -44,6 +44,8 @@ public class Indexer {
 
             DocumentDateTerm documentDateTerm = new DocumentDateTerm("");
 
+            HashSet<Term> docEntities = new HashSet<>();
+
             //iterating through current document's map, each term at a time
             for (Map.Entry<Term, TermDocPair> entry : currentMap.entrySet()) {
                 int currentTermCounter;
@@ -65,7 +67,7 @@ public class Indexer {
 
                 //updates the dictionary by given term
                 else {
-                    currentTerm = updatingDictionary(currentTerm,currentTermCounter);
+                    currentTerm = updatingDictionary(currentTerm, currentTermCounter, docEntities);
                 }
 
                 //handles the output post file
@@ -79,7 +81,7 @@ public class Indexer {
                 }
             }
             try {
-                documentFileHandler.writeDocumentDataToFile(document.getDocNo(), numOfUniqueTerms, mostCommonTermCounter, mostCommmonTerm, documentDateTerm, document.getHeader());
+                documentFileHandler.writeDocumentDataToFile(document.getDocNo(), numOfUniqueTerms, mostCommonTermCounter, mostCommmonTerm, documentDateTerm, document.getHeader(), docEntities);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -114,11 +116,13 @@ public class Indexer {
      * in the posting file lower case term data, for future merging.
      *
      * @param currentTerm
+     * @param docEntities
      * @return update current term
      */
-    private Term updatingDictionary(Term currentTerm, int currentPairCounter) {
+    private Term updatingDictionary(Term currentTerm, int currentPairCounter, HashSet<Term> docEntities) {
         //handles entity terms
         if (currentTerm instanceof EntityTerm) {
+            docEntities.add(currentTerm);
             if (dictionary.contains(currentTerm)) {
                 ((EntityTerm) currentTerm).setToEntity();
                 dictionary.add(currentTerm,currentPairCounter);
