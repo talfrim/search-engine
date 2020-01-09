@@ -50,7 +50,7 @@ public class Searcher {
             ArrayList<Double> scores = new ArrayList<>();
             for (Term entity : realEntities) {
                 int entitySize = entity.getData().length();
-                
+                //TODO
             }
         }
         return null;
