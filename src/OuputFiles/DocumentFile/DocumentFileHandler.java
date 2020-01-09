@@ -44,11 +44,14 @@ public class DocumentFileHandler {
         stringBuilder.append(header);
         stringBuilder.append(";");
         stringBuilder.append("ENTITIES:");
+        int count = 0;
         for (Term entity: entities) {
+            count++;
             stringBuilder.append(entity.getData());
             stringBuilder.append(";");
         }
-        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+        if(count > 0)
+            stringBuilder.deleteCharAt(stringBuilder.length() - 1);
         stringBuilder.append("\n");
 
 

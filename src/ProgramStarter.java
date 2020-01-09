@@ -152,7 +152,7 @@ public class ProgramStarter {
             tempDocFiles.mkdir();
         }
 
-        tempDocFilesPath = outputPath + "\\" + getStemRelatedFolder(toStem) + "\\" + "tempDocsFiles";
+        tempDocFilesPath = outputPath + "\\" + getStemRelatedFolder(toStem) + "\\" + "DocsFiles";
         File fileTooCheck = new File(tempDocFilesPath);
         if (!fileTooCheck.exists()) {
             fileTooCheck.mkdir();
