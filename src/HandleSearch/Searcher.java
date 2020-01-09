@@ -1,36 +1,56 @@
 package HandleSearch;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
 import java.util.ArrayList;
+import java.util.concurrent.*;
 import java.util.regex.Pattern;
 
+/**
+ * this class is responsible for the return of all the relevant docs for a given query
+ * this class uses the class Ranker for that purpose
+ */
 public class Searcher {
     private ArrayList<String> docsPath;
-    private static Pattern splitByDotCom= Pattern.compile("[\\;]");
 
     public Searcher(ArrayList<String> docsPath)
     {
         this.docsPath = docsPath;
     }
 
+
+    /**
+     * this method gets String docNo and returns all of the doc's properties from our the docs file via string line
+     * @param docNo
+     * @return String line of data
+     */
     private String searchDoc(String docNo)
     {
-        BufferedReader [] readers = new BufferedReader[docsPath.size()];
-        for (int i = 0; i < readers.length; i++) {
+        int numOfFiles = 6;
+        ArrayList<FindDocData> answers = new ArrayList<>();
+        ExecutorService pool = Executors.newFixedThreadPool(numOfFiles);
+        for (int i = 0; i < numOfFiles; i++) {
             try {
-                readers[i] = new BufferedReader(new FileReader(docsPath.get(i)));
+                BufferedReader reader = new BufferedReader(new FileReader(docsPath.get(i)));
+                FindDocData findDocData = new FindDocData(reader, docNo);
+                answers.add(findDocData);
+                pool.execute(findDocData);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
         }
-        boolean found = false;
-        int startIndex = 0;
-        while(!found) {
-
+        try {
+            pool.shutdown();
+            pool.awaitTermination(200000, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-        return "";
+        for(FindDocData finder : answers) {
+            if(finder.getDocData() != null) {
+                return finder.getDocData();
+            }
+        }
+        System.out.println("couldn't find the doc in our files");
+        return null;
     }
+
 }
