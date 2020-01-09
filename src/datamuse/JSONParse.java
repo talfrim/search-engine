@@ -10,7 +10,6 @@ package datamuse;
 import com.json.parsers.JSONParser;
 import com.json.parsers.JsonParserFactory;
 
-
 import java.util.List;
 import java.util.Map;
 

@@ -103,10 +103,10 @@ public class PostingFilePointer {
         }
     }
 
-    @Override
-    public String toString() {
+    public String getFileStr(){
         return fileStr;
     }
+
 
     /**
      * getter for fileStrName
