@@ -6,6 +6,7 @@ import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -33,10 +34,12 @@ public class ProgramStarter {
         String[][] arrays = initWorkersArrays(folderFiles);
         executor = (ThreadPoolExecutor) Executors.newFixedThreadPool((Runtime.getRuntime().availableProcessors() + 2));
         HashSet<String> stopWords = readStopWords(inputPath + "\\05 stop_words");
+        ArrayList<String> docsPath = new ArrayList<>();
         for (int i = 0; i < arrays.length; i++) {
             String[] readFilesPath = arrays[i];//302-305
             String sPostFilePath = stemRelatedFolder + "\\workersFiles\\workerArray" + i + "\\";
             String docFilePath = outputPath + "\\" + stemRelatedFolder + "\\tempDocsFiles\\docFile" + i;
+            docsPath.add(docFilePath);
             WorkerThread wt = new WorkerThread(pathFolder, readFilesPath, sPostFilePath, docFilePath, stopWords,toStemm);
             executor.execute(wt);
         }
