@@ -2,7 +2,6 @@ package HandleSearch;
 
 import TermsAndDocs.Docs.Document;
 
-import javax.print.Doc;
 import java.util.ArrayList;
 
 /**
@@ -28,6 +27,11 @@ public class Ranker {
      */
     private ArrayList<String> semanticallyCloseWords;
 
+    /**
+     * The percentage given to the query when calculating the rank in case of taking into account
+     * the semantically close words.
+     * 1 minus this variable will be the percentage
+     */
     private final double weightOfQuery = 0.65;
 
 
