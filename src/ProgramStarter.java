@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 public class ProgramStarter {
 
     /**
-     * this method starts the main program by creating workers an executing them.
+     * this method starts the GloveTrainedFilesUsage program by creating workers an executing them.
      * @param inputPath
      * @param outputPath
      * @param toStemm
