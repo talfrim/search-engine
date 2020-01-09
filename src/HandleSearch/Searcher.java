@@ -2,7 +2,8 @@ package HandleSearch;
 
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
-import OuputFiles.FindDocData;
+import OuputFiles.DocumentFile.FindDocData;
+import OuputFiles.PostingFile.FindTermData;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 
@@ -71,6 +72,9 @@ public class Searcher {
 
     private int getNumOfAppearancesInDoc(String docNo, Dictionary dictionary, Term entity) {
         //TODO
+        String path = dictionary.get(entity).getPointer().getFileStr();
+        FindTermData finder = new FindTermData();
+        String entitryLine = finder.findLine(path, entity.getData());
         return 0;
     }
 

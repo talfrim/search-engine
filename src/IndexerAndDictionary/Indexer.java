@@ -1,7 +1,7 @@
 package IndexerAndDictionary;
 
-import OuputFiles.DocumentFileHandler;
-import OuputFiles.WorkerPostingFileHandler;
+import OuputFiles.DocumentFile.DocumentFileHandler;
+import OuputFiles.PostingFile.WorkerPostingFileHandler;
 import TermsAndDocs.Docs.Document;
 import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.*;
