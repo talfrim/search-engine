@@ -2,13 +2,16 @@ package HandleSearch;
 
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
-import TermsAndDocs.Terms.EntityTerm;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -50,7 +53,7 @@ public class Searcher {
             ArrayList<Double> scores = new ArrayList<>();
             for (Term entity : realEntities) {
                 int entitySize = entity.getData().length();
-                //TODO
+                
             }
         }
         return null;
