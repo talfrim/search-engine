@@ -34,12 +34,12 @@ public class Searcher {
         String docData = searchDoc(docNo);
         String[] splitter = splitByEntities.split(docData);
         String strEntities = splitter[1];
-        String[] entities = splitByDotCom.split(strEntities);
+        String[] mayEntities = splitByDotCom.split(strEntities);
         TermBuilder builder = new TermBuilder();
         ArrayList<Term> realEntities = new ArrayList<>();
         //keeping only the right entities
-        for (int i = 0; i < entities.length; i++) {
-            Term t = builder.buildTerm("EntityTerm", entities[i]);
+        for (int i = 0; i < mayEntities.length; i++) {
+            Term t = builder.buildTerm("EntityTerm", mayEntities[i]);
             if(dictionary.contains(t))
                 realEntities.add(t);
         }
@@ -47,7 +47,11 @@ public class Searcher {
             return realEntities;
         }
         else{
-            
+            ArrayList<Double> scores = new ArrayList<>();
+            for (Term entity : realEntities) {
+                int entitySize = entity.getData().length();
+                
+            }
         }
         return null;
     }
