@@ -5,8 +5,6 @@ import TermsAndDocs.Terms.Term;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 
 /**
@@ -65,4 +63,5 @@ public class DocumentFileHandler {
             e.printStackTrace();
         }
     }
+
 }

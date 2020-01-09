@@ -2,6 +2,7 @@ package HandleSearch;
 
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
+import OuputFiles.FindDocData;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 
@@ -13,6 +14,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+
+import static IndexerAndDictionary.Indexer.dictionary;
 
 /**
  * this class is responsible for the return of all the relevant docs for a given query
@@ -34,7 +37,9 @@ public class Searcher {
      */
     public ArrayList<Term> FiveTopEntities(String docNo){
         Dictionary dictionary = Indexer.dictionary;
+        //finding the doc's properties
         String docData = searchDoc(docNo);
+
         String[] splitter = splitByEntities.split(docData);
         String strEntities = splitter[1];
         String[] mayEntities = splitByDotCom.split(strEntities);
@@ -50,14 +55,25 @@ public class Searcher {
             return realEntities;
         }
         else{
-            ArrayList<Double> scores = new ArrayList<>();
-            for (Term entity : realEntities) {
-                int entitySize = entity.getData().length();
-                
-            }
+            ArrayList<Double> scores = calculateScores(realEntities, docNo);
         }
         return null;
     }
+
+    private ArrayList<Double> calculateScores(ArrayList<Term> realEntities, String docNo) {
+        for (Term entity : realEntities) {
+            int entitySize = entity.getData().length();
+            int appearancesInDoc = getNumOfAppearancesInDoc(docNo, dictionary, entity);
+            int appearncesInCorpus = dictionary.get(entity).getTotalCount();
+        }
+        return null;
+    }
+
+    private int getNumOfAppearancesInDoc(String docNo, Dictionary dictionary, Term entity) {
+        //TODO
+        return 0;
+    }
+
 
     /**
      * this method gets String docNo and returns all of the doc's properties from our the docs file via string line
@@ -95,5 +111,4 @@ public class Searcher {
         }
         return null;
     }
-
 }
