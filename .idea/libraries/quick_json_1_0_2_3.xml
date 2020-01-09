@@ -1,7 +1,7 @@
 <component name="libraryTable">
   <library name="quick-json-1.0.2.3">
     <CLASSES>
-      <root url="jar://$USER_HOME$/Downloads/quick-json-1.0.2.3.zip!/" />
+      <root url="jar://$PROJECT_DIR$/quick-json-1.0.2.3.zip!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
