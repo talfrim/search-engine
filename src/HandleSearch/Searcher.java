@@ -51,6 +51,7 @@ public class Searcher {
         this.docsPath = docsPath;
         this.isSemantic = isSemantic;
         queryWords = new ArrayList<>();
+        queryWords.add("fuel");
         semanticallyCloseWords = isSemantic ? getSemanticallyCloseWords() : new ArrayList<>();
     }
 
