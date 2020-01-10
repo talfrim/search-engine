@@ -28,9 +28,10 @@ import static IndexerAndDictionary.Indexer.dictionary;
 public class Searcher {
     private ArrayList<String> docsPath;
     private static Pattern escape = Pattern.compile("[ ]");
-    private static Pattern splitByEntities= Pattern.compile("[E][N][T][I][T][I][E][S][:]");
-    private static Pattern splitByDotCom= Pattern.compile("[\\;]");
+    private static Pattern splitByEntities = Pattern.compile("[E][N][T][I][T][I][E][S][:]");
+    private static Pattern splitByDotCom = Pattern.compile("[\\;]");
     private ArrayList<String> queryWords;
+
 
     /**
      * ArrayList that will hold the semantically close words to the query
@@ -45,20 +46,12 @@ public class Searcher {
      */
     private boolean isSemantic;
 
-    /**
-     * Field mentioning if in case of ranking with semantics we will use the online option
-     * If {@code isSemantic} is false, we ignore this field
-     */
-    private boolean isSemanticOnline;
 
-
-    public Searcher(ArrayList<String> docsPath, boolean isSemantic, boolean isSemanticOnline)
-    {
+    public Searcher(ArrayList<String> docsPath, boolean isSemantic) {
         this.docsPath = docsPath;
-        this.isSemantic=isSemantic;
-        this.isSemanticOnline=isSemanticOnline;
+        this.isSemantic = isSemantic;
         queryWords = new ArrayList<>();
-        semanticallyCloseWords = isSemantic ? getSemanticallyCloseWords(isSemanticOnline): null;
+        semanticallyCloseWords = isSemantic ? getSemanticallyCloseWords() : new ArrayList<>();
     }
 
 
@@ -66,7 +59,7 @@ public class Searcher {
      * @param docNo
      * @return {@code ArrayList) of the five (if exists) most dominating entities in the doc
      */
-    public ArrayList<Term> FiveTopEntities(String docNo){
+    public ArrayList<Term> FiveTopEntities(String docNo) {
         Dictionary dictionary = Indexer.dictionary;
 
         //finding the doc's properties
@@ -75,7 +68,7 @@ public class Searcher {
 
         //gets all of the entities in a doc
         String[] splitter = splitByEntities.split(docData);
-        if(splitter.length == 1)
+        if (splitter.length == 1)
             return new ArrayList<>();
         String strEntities = splitter[1];
         String[] mayEntities = splitByDotCom.split(strEntities);
@@ -84,13 +77,12 @@ public class Searcher {
         //keeping only the right entities
         for (int i = 0; i < mayEntities.length; i++) {
             Term t = builder.buildTerm("EntityTerm", mayEntities[i]);
-            if(dictionary.contains(t))
+            if (dictionary.contains(t))
                 realEntities.add(t);
         }
-        if(realEntities.size() <= 5){
+        if (realEntities.size() <= 5) {
             return realEntities;
-        }
-        else{
+        } else {
             ArrayList<Double> scores = calculateScores(realEntities, docNo);
             ArrayList<Term> topFive = new ArrayList<>();
             for (int i = 0; i <= 4; i++) {
@@ -102,11 +94,11 @@ public class Searcher {
 
     /**
      * this method gets {@code String docNo) and returns all of the doc's properties from our the docs file via string line
+     *
      * @param docNo
      * @return String line of data
      */
-    public String searchDocInFile(String docNo)
-    {
+    public String searchDocInFile(String docNo) {
         int numOfFiles = 6;
         ArrayList<FindDocData> answers = new ArrayList<>();
         ExecutorService pool = Executors.newFixedThreadPool(numOfFiles);
@@ -126,12 +118,12 @@ public class Searcher {
             pool.shutdown();
             pool.awaitTermination(200000, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            
+
             e.printStackTrace();
         }
         //returning the line of doc's data
-        for(FindDocData finder : answers) {
-            if(finder.getDocData() != null) {
+        for (FindDocData finder : answers) {
+            if (finder.getDocData() != null) {
                 return finder.getDocData();
             }
         }
@@ -141,6 +133,7 @@ public class Searcher {
     /**
      * this method is responsible for returning the scores for all the entity terms in a document
      * score is calculated by : ((size of term (num of words)) * (number of appearances in the doc)) / log(appearances in corpus)
+     *
      * @param realEntities
      * @param docNo
      * @return array list of scores for each entity
@@ -169,6 +162,7 @@ public class Searcher {
     /**
      * this method is responsible for returning the number of appearances given term made in a given doc
      * by getting the answer from the posting file
+     *
      * @param dictionary
      * @param entity
      * @param docNoSplit
@@ -186,7 +180,7 @@ public class Searcher {
         String strApperances = "";
         int i = 0;
         char ch = contains.charAt(0);
-        while (ch != ')'){
+        while (ch != ')') {
             strApperances += ch;
             i++;
             ch = contains.charAt(i);
@@ -200,6 +194,7 @@ public class Searcher {
     /**
      * this method is responsible for extracting and returning
      * the biggest score of term from the scores and realEntities arrays
+     *
      * @param scores
      * @param realEntities
      * @return term with the biggest score
@@ -208,7 +203,7 @@ public class Searcher {
         double maxScore = 0;
         int index = 0;
         for (int i = 0; i < scores.size(); i++) {
-            if(scores.get(i) > maxScore){
+            if (scores.get(i) > maxScore) {
                 maxScore = scores.get(i);
                 index = i;
             }
@@ -219,11 +214,16 @@ public class Searcher {
 
     /**
      * Using online\offline methods to get similar words
-     * (determined by {@code isSemanticOnline} field
      * @return ArrayList of similar words
      */
-    private ArrayList<String> getSemanticallyCloseWords(boolean isSemanticOnline) {
-        return isSemanticOnline ? getSemanticallyCloseWordsOnline() : getSemanticlyCloseWordsOffline();
+    public ArrayList<String> getSemanticallyCloseWords() {
+        try {
+          return  getSemanticallyCloseWordsOnline();
+        }
+        catch (Exception e)
+        {
+           return getSemanticlyCloseWordsOffline();
+        }
     }
 
 
@@ -231,45 +231,47 @@ public class Searcher {
      * Using Word2vecJava to get a list of similar words
      * *Using pre-trained model
      * *If unknown wors is found, we simply ignore it
+     *
      * @return ArrayList of similar words
      */
     private ArrayList<String> getSemanticlyCloseWordsOffline() {
         ArrayList<String> output = new ArrayList<>();
         try {
-            Word2VecModel model = Word2VecModel.fromTextFile(new File("\\data\\model\\word2vec.c.output.model.txt"));
+            Word2VecModel model = Word2VecModel.fromTextFile(new File("data\\model\\word2vec.c.output.model.txt"));
             com.medallia.word2vec.Searcher semanticSearcher = model.forSearch();
-            int numOfResults = 10;
-            List<com.medallia.word2vec.Searcher.Match> matches = semanticSearcher.getMatches(">>wordToSearch<<",numOfResults);
-
-            for (com.medallia.word2vec.Searcher.Match match : matches)
-            {
-                output.add(match.match());
+            int numOfResults = 11;
+            for (int i = 0; i < queryWords.size(); i++) {
+                List<com.medallia.word2vec.Searcher.Match> matches = semanticSearcher.getMatches(queryWords.get(i).toLowerCase(), numOfResults);
+                for (com.medallia.word2vec.Searcher.Match match : matches) {
+                    if (!match.match().equals(queryWords.get(i)))
+                        output.add(match.match());
+                }
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (com.medallia.word2vec.Searcher.UnknownWordException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            //e.printStackTrace();
         }
-        return output;
+        finally {
+            return output;
+        }
     }
 
     /**
      * Using datamuse API to get a list of similar words
-     * @apiNote requires internet connection!
+     *
      * @return ArrayList of similar words
+     * @apiNote requires internet connection!
      */
     private ArrayList<String> getSemanticallyCloseWordsOnline() {
         ArrayList<String> output = new ArrayList<>();
-        DatamuseQuery datamuseQuery = new DatamuseQuery();
-        JSONParse jSONParse = new JSONParse();
+            DatamuseQuery datamuseQuery = new DatamuseQuery();
+            JSONParse jSONParse = new JSONParse();
+            for (String word : queryWords) {
+                String initCloseWords = datamuseQuery.findSimilar(word);
+                String[] parsedCloseWords = jSONParse.parseWords(initCloseWords);
+                addArrayToList(parsedCloseWords, output);
+            }
+            return output;
 
-        for (String word:queryWords) {
-            String initCloseWords = datamuseQuery.findSimilar(word);
-            String[] parsedCloseWords = jSONParse.parseWords(initCloseWords);
-            addArrayToList(parsedCloseWords,output);
-        }
-        return output;
     }
 
 
@@ -277,7 +279,7 @@ public class Searcher {
      * function that adds all the strings of a given string array to the given list
      */
     private void addArrayToList(String[] parsedCloseWords, List<String> list) {
-        for (String word:parsedCloseWords
+        for (String word : parsedCloseWords
         ) {
             list.add(word);
         }
