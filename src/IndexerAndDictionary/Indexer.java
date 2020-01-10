@@ -16,13 +16,15 @@ public class Indexer {
     private TermBuilder termBuilder;
     private DocumentFileHandler documentFileHandler;
     private WorkerPostingFileHandler postFile;
+    String documentDataFilePath;
 
 
     public Indexer(ArrayList<HashMap<Term, TermDocPair>> pairsMapsList, String documentDataFilePath, String postFilePath) {
         this.pairsMapsList = pairsMapsList;
         termDescriptionMap = new HashMap<>();
         termBuilder = new TermBuilder();
-        documentFileHandler = new DocumentFileHandler(documentDataFilePath);
+        documentFileHandler = new DocumentFileHandler();
+        this.documentDataFilePath = documentDataFilePath;
         postFile = new WorkerPostingFileHandler(postFilePath);
     }
 
@@ -81,7 +83,7 @@ public class Indexer {
                 }
             }
             try {
-                documentFileHandler.writeDocumentDataToFile(document.getDocNo(), numOfUniqueTerms, mostCommonTermCounter, mostCommmonTerm, documentDateTerm, document.getHeader(), docEntities);
+                documentFileHandler.writeDocumentDataToFile(this.documentDataFilePath, document.getDocNo(), numOfUniqueTerms, mostCommonTermCounter, mostCommmonTerm, documentDateTerm, document.getHeader(), docEntities);
             } catch (Exception e) {
                 e.printStackTrace();
             }
