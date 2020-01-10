@@ -95,7 +95,7 @@ public class DictionaryFileHandler {
                 CountAndPointerDicValue dicValue = new CountAndPointerDicValue();
                 dicValue.setTotalCount(totalCount);
                 dicValue.setPointer(pointer);
-                dictionary.add(term, totalCount);
+                dictionary.add(term, dicValue);
             }
         } catch (Exception e) {
             e.printStackTrace();

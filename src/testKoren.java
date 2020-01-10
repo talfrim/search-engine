@@ -1,6 +1,8 @@
 import HandleSearch.Searcher;
 import IndexerAndDictionary.Dictionary;
+import IndexerAndDictionary.Indexer;
 import OuputFiles.DictionaryFileHandler;
+import OuputFiles.DocumentFile.DocumentFileHandler;
 import TermsAndDocs.Terms.Term;
 
 import java.util.ArrayList;
@@ -15,18 +17,10 @@ public class testKoren {
             docsPath.add(docFilePath);
         }
         DictionaryFileHandler dfh = new DictionaryFileHandler(new Dictionary());
-        Dictionary dic = dfh.readFromFile(output, true);
+        Indexer.dictionary = dfh.readFromFile(output, true);
 
         long start = System.currentTimeMillis();
         Searcher searcher = new Searcher(docsPath);
-        String docData1 = searcher.searchDocInFile("FBIS4-16257");
-        String docData2 = searcher.searchDocInFile("FT911-4805");
-        String docData3 = searcher.searchDocInFile("FT923-9562");
-        String docData4 = searcher.searchDocInFile("FT941-14268");
-        String docData5 = searcher.searchDocInFile("LA030889-0002");
-        String docData6 = searcher.searchDocInFile("LA122490-0123");
-
-        System.out.println();
 
         ArrayList<Term> arr1 = searcher.FiveTopEntities("FBIS4-16257");
         ArrayList<Term> arr2 = searcher.FiveTopEntities("FT911-4805");

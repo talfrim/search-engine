@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
  * helps to searcher
  */
 public class FindTermData {
+    private Pattern bracket = Pattern.compile("[\\(]");
 
     public FindTermData() { }
 
@@ -24,10 +25,12 @@ public class FindTermData {
             Pattern pattern = Pattern.compile(entityVal);
             String ansLine = reader.readLine();
             while (ansLine != null) {
-                if(pattern.matcher(ansLine).find()){
+                String [] splitter = bracket.split(ansLine);
+                if(pattern.matcher(splitter[0]).matches()){
                     reader.close();
                     return ansLine;
                 }
+                ansLine = reader.readLine();
             }
             reader.close();
         } catch (FileNotFoundException e) {
