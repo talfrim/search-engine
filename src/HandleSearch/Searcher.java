@@ -186,8 +186,7 @@ public class Searcher {
            return getSemanticlyCloseWordsOffline();
         }
     }
-
-
+    
     /**
      * Using Word2vecJava to get a list of similar words
      * *Using pre-trained model
