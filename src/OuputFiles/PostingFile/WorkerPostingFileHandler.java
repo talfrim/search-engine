@@ -23,9 +23,9 @@ public class WorkerPostingFileHandler {
     public void writeWorkerFile(ArrayList<String> sortedValues)
     {
         try {
-        File workerPost = new File(path);
-        workerPost.createNewFile();
-        BufferedWriter writer = null;
+            File workerPost = new File(path);
+            workerPost.createNewFile();
+            BufferedWriter writer = null;
             writer = new BufferedWriter(new FileWriter(this.path));
             while (sortedValues.size() > 0) {
                 String current = sortedValues.remove(sortedValues.size() - 1);

@@ -1,15 +1,8 @@
 package HandleSearch;
 
 import HandleParse.DataConfiguration.Stemmer;
-import TermsAndDocs.Docs.Document;
-import com.medallia.word2vec.Word2VecModel;
-import datamuse.DatamuseQuery;
-import datamuse.JSONParse;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * This class is responsible for ranking documents with respect to a query
@@ -37,24 +30,32 @@ public class Ranker {
      */
     private final double weightOfOriginalQuery = 0.65;
 
+    /**
+     * The percentage given to the bm25 functions when scoring with the different parameters
+     * The reat goes to cos similarity, is the word in the header, etc...
+     */
+    private final double weightOfBM25 = 0.60;
+
 
     /**
      * k1 parameter for bm25
      */
-    private double k1;
+    private double k1 = 2;
 
     /**
-     * k1 parameter for bm25
+     * b parameter for bm25
      */
-    private double b;
+    private double b = 0.75;
 
     /**
      * This is the number of documents in the corpus
      */
     public final int numOfDocs = 472531;
 
-
-
+    /**
+     * This is the avg doc length
+     */
+    public final int avgDocLength = 250; //TODO
 
     /**
      * @param isSemantic field mentioning if we should take into account the result of the semantic connection
@@ -73,21 +74,60 @@ public class Ranker {
     public double rankDocument(
             ArrayList<String> queryWords, ArrayList<Integer> queryWordsTfs, ArrayList<Integer> queryWordsDfs,
              ArrayList<String> similarWords, ArrayList<Integer> similarWordsTfs, ArrayList<Integer> similarWordsDfs,
-              ArrayList<Integer> dfs, int maxTf,  ArrayList<String> docHeaderStrings)
+              int lengthOfDoc,  ArrayList<String> docHeaderStrings)
     {
         double output;
         if (!isSemantic) {
-            output=0;
+            output = weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
+                    + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
+                    +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs);
         }
-        return 0;
+        else //with semantics
+        output = weightOfOriginalQuery* (weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
+                + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
+                +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs))
+                +(1-weightOfOriginalQuery)* (weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
+                + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
+                +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs));
+        return output;
     }
 
-    private double getTfIdfRank(ArrayList<Integer> Tfs, ArrayList<Integer> dfs, int maxTf) {
-        return 0;
+    private double getCosSimRank(ArrayList<Integer> tfs, ArrayList<Integer> dfs) {
+        double[] queryVector = new double[tfs.size()];
+        for (int i=0; i<queryVector.length; i++) {
+            queryVector[i] = 1;
+        }
+
+        double[] docVector = new double[tfs.size()];
+        for (int i=0; i<docVector.length; i++) {
+            queryVector[i] = tfs.get(i) * getIdf(dfs.get(i));
+        }
+
+        return cosineSimilarity(queryVector,docVector);
     }
 
-    private double getBM25Rank(ArrayList<Integer> Tfs, ArrayList<Integer> dfs, int maxTf) {
-        return 0;
+    private double cosineSimilarity(double[] vectorA, double[] vectorB) {
+        double dotProduct = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+        for (int i = 0; i < vectorA.length; i++) {
+            dotProduct += vectorA[i] * vectorB[i];
+            normA += Math.pow(vectorA[i], 2);
+            normB += Math.pow(vectorB[i], 2);
+        }
+        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    }
+
+    private double getBM25Rank(ArrayList<Integer> tfs, ArrayList<Integer> dfs, int lengthOfDoc) {
+        double output=0;
+        for (int i=0; i< tfs.size(); i++) {
+            output += getBM25ForOneTerm(tfs.get(i),dfs.get(i),lengthOfDoc);
+        }
+        return output;
+    }
+
+    private double getBM25ForOneTerm(Integer tf, Integer df, int lengthOfDoc) {
+        return getIdf(df) * ((tf)*(k1+1)) / (tf+k1*(1-b+b*(lengthOfDoc/avgDocLength)));
     }
 
     /**
@@ -106,14 +146,33 @@ public class Ranker {
     }
 
     /**
+     * returns the percentage of the words from the query that are in the documents header
+     * @param terms
+     * @param docHeaderStrings
+     * @return the percentage of the words from the query that are in the documents header
+     */
+    private double getTermsInHeaderScore(ArrayList<String> terms,ArrayList<String> docHeaderStrings) {
+        int counter =0;
+        for (String term: terms) {
+            counter += isTermInHeader(term,docHeaderStrings); //this will give us the number of terms from the list which are in the header
+        }
+        return ((double) counter)/((double)terms.size());
+    }
+
+    /**
      * @param df
      * @return idf of given df, based on {@code numOfDocs} field
      */
-    private double getIdf(int df)
-    {
+    private double getIdf(int df) {
         return (Math.log(numOfDocs/df)) / Math.log(2);
     }
 
+    /**
+     * using stemmer class to stem given string
+     * @param toStem
+     * @return stemmed string
+     * @see Stemmer
+     */
     private String stemmStr(String toStem) {
         Stemmer stemm = new Stemmer();
         stemm.add(toStem.toCharArray(), toStem.length());

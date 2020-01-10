@@ -26,12 +26,15 @@ public class DocumentFileHandler {
      * @param mostCommmonTerm
      * @param documentDateTerm
      * @param header
+     * @param docSize
      */
     public void writeDocumentDataToFile(String documentDataFilePath, String docNo, int numOfUniqueTerms, int mostCommonTermCounter, Term mostCommmonTerm,
-                                        DocumentDateTerm documentDateTerm, String header, HashSet<Term> entities) {
+                                        DocumentDateTerm documentDateTerm, String header, int docSize, HashSet<Term> entities) {
 
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(docNo);
+        stringBuilder.append(";");
+        stringBuilder.append(docSize);
         stringBuilder.append(";");
         stringBuilder.append(numOfUniqueTerms);
         stringBuilder.append(";");
