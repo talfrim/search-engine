@@ -7,11 +7,13 @@ import OuputFiles.DocumentFile.FindDocData;
 import OuputFiles.PostingFile.FindTermData;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
+import com.medallia.word2vec.Word2VecModel;
+import datamuse.DatamuseQuery;
+import datamuse.JSONParse;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -28,16 +30,41 @@ public class Searcher {
     private static Pattern escape = Pattern.compile("[ ]");
     private static Pattern splitByEntities= Pattern.compile("[E][N][T][I][T][I][E][S][:]");
     private static Pattern splitByDotCom= Pattern.compile("[\\;]");
+    private ArrayList<String> queryWords;
 
-    public Searcher(ArrayList<String> docsPath)
+    /**
+     * ArrayList that will hold the semantically close words to the query
+     * (only if {@code isSemantic} is true)
+     */
+    private ArrayList<String> semanticallyCloseWords;
+
+    /**
+     * Field mentioning if we should take into account the result of the semantic connection
+     * between the query and the document. Probably will be decided by the user.
+     * If it is false, only original query words will be taken into account.
+     */
+    private boolean isSemantic;
+
+    /**
+     * Field mentioning if in case of ranking with semantics we will use the online option
+     * If {@code isSemantic} is false, we ignore this field
+     */
+    private boolean isSemanticOnline;
+
+
+    public Searcher(ArrayList<String> docsPath, boolean isSemantic, boolean isSemanticOnline)
     {
         this.docsPath = docsPath;
+        this.isSemantic=isSemantic;
+        this.isSemanticOnline=isSemanticOnline;
+        queryWords = new ArrayList<>();
+        semanticallyCloseWords = isSemantic ? getSemanticallyCloseWords(isSemanticOnline): null;
     }
 
 
     /**
      * @param docNo
-     * @return ArrayList of the five (if exists) most dominating entities in the doc
+     * @return {@code ArrayList) of the five (if exists) most dominating entities in the doc
      */
     public ArrayList<Term> FiveTopEntities(String docNo){
         Dictionary dictionary = Indexer.dictionary;
@@ -150,6 +177,72 @@ public class Searcher {
         }
         scores.remove(index);
         return realEntities.remove(index);
+    }
+
+    /**
+     * Using online\offline methods to get similar words
+     * (determined by {@code isSemanticOnline} field
+     * @return ArrayList of similar words
+     */
+    private ArrayList<String> getSemanticallyCloseWords(boolean isSemanticOnline) {
+        return isSemanticOnline ? getSemanticallyCloseWordsOnline() : getSemanticlyCloseWordsOffline();
+    }
+
+
+    /**
+     * Using Word2vecJava to get a list of similar words
+     * *Using pre-trained model
+     * *If unknown wors is found, we simply ignore it
+     * @return ArrayList of similar words
+     */
+    private ArrayList<String> getSemanticlyCloseWordsOffline() {
+        ArrayList<String> output = new ArrayList<>();
+        try {
+            Word2VecModel model = Word2VecModel.fromTextFile(new File("\\data\\model\\word2vec.c.output.model.txt"));
+            com.medallia.word2vec.Searcher semanticSearcher = model.forSearch();
+            int numOfResults = 10;
+            List<com.medallia.word2vec.Searcher.Match> matches = semanticSearcher.getMatches(">>wordToSearch<<",numOfResults);
+
+            for (com.medallia.word2vec.Searcher.Match match : matches)
+            {
+                output.add(match.match());
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (com.medallia.word2vec.Searcher.UnknownWordException e) {
+            e.printStackTrace();
+        }
+        return output;
+    }
+
+    /**
+     * Using datamuse API to get a list of similar words
+     * @apiNote requires internet connection!
+     * @return ArrayList of similar words
+     */
+    private ArrayList<String> getSemanticallyCloseWordsOnline() {
+        ArrayList<String> output = new ArrayList<>();
+        DatamuseQuery datamuseQuery = new DatamuseQuery();
+        JSONParse jSONParse = new JSONParse();
+
+        for (String word:queryWords) {
+            String initCloseWords = datamuseQuery.findSimilar(word);
+            String[] parsedCloseWords = jSONParse.parseWords(initCloseWords);
+            addArrayToList(parsedCloseWords,output);
+        }
+        return output;
+    }
+
+
+    /**
+     * function that adds all the strings of a given string array to the given list
+     */
+    private void addArrayToList(String[] parsedCloseWords, List<String> list) {
+        for (String word:parsedCloseWords
+        ) {
+            list.add(word);
+        }
     }
 
 }
