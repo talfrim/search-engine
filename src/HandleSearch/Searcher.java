@@ -121,6 +121,7 @@ public class Searcher {
             pool.shutdown();
             pool.awaitTermination(200000, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
+            
             e.printStackTrace();
         }
         //returning the line of doc's data
