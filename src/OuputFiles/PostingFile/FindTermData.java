@@ -24,9 +24,12 @@ public class FindTermData {
             Pattern pattern = Pattern.compile(entityVal);
             String ansLine = reader.readLine();
             while (ansLine != null) {
-                if(pattern.matcher(ansLine).find())
+                if(pattern.matcher(ansLine).find()){
+                    reader.close();
                     return ansLine;
+                }
             }
+            reader.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
