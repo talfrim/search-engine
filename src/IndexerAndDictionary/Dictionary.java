@@ -77,6 +77,16 @@ public class Dictionary {
         }
     }
 
+    /**
+     * adds to the given term the given counter and given path
+     * if term doesnt exist, add it
+     * @param currentTerm
+     * @param countAndPointerDicValue
+     */
+    public void add(Term currentTerm, CountAndPointerDicValue countAndPointerDicValue){
+        this.dictionaryTable.put(currentTerm, countAndPointerDicValue);
+    }
+
 
     /**
      * @param term
@@ -130,7 +140,8 @@ public class Dictionary {
      */
     public CountAndPointerDicValue get(Term t)
     {
-        return dictionaryTable.get(t);
+        CountAndPointerDicValue countAndPointerDicValue = dictionaryTable.get(t);
+        return countAndPointerDicValue;
     }
 
 

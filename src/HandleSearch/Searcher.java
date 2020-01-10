@@ -2,6 +2,7 @@ package HandleSearch;
 
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
+import OuputFiles.DocumentFile.DocumentFileHandler;
 import OuputFiles.DocumentFile.FindDocData;
 import OuputFiles.PostingFile.FindTermData;
 import TermsAndDocs.Terms.Term;
@@ -26,6 +27,7 @@ import static IndexerAndDictionary.Indexer.dictionary;
  */
 public class Searcher {
     private ArrayList<String> docsPath;
+    private static Pattern escape = Pattern.compile("[ ]");
     private static Pattern splitByEntities= Pattern.compile("[E][N][T][I][T][I][E][S][:]");
     private static Pattern splitByDotCom= Pattern.compile("[\\;]");
     private ArrayList<String> queryWords;
@@ -68,10 +70,13 @@ public class Searcher {
         Dictionary dictionary = Indexer.dictionary;
 
         //finding the doc's properties
-        String docData = searchDocInFile(docNo);
+        DocumentFileHandler dfh = new DocumentFileHandler();
+        String docData = dfh.searchDocInFiles(docNo, this.docsPath);
 
         //gets all of the entities in a doc
         String[] splitter = splitByEntities.split(docData);
+        if(splitter.length == 1)
+            return new ArrayList<>();
         String strEntities = splitter[1];
         String[] mayEntities = splitByDotCom.split(strEntities);
         TermBuilder builder = new TermBuilder();
@@ -88,7 +93,7 @@ public class Searcher {
         else{
             ArrayList<Double> scores = calculateScores(realEntities, docNo);
             ArrayList<Term> topFive = new ArrayList<>();
-            for (int i = 0; i <= 5; i++) {
+            for (int i = 0; i <= 4; i++) {
                 topFive.add(extractBiggestScore(scores, realEntities));
             }
             return topFive;
@@ -121,7 +126,7 @@ public class Searcher {
             pool.shutdown();
             pool.awaitTermination(200000, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-
+            
             e.printStackTrace();
         }
         //returning the line of doc's data
@@ -135,7 +140,7 @@ public class Searcher {
 
     /**
      * this method is responsible for returning the scores for all the entity terms in a document
-     * score is calculated by : ((size of term) * (number of appearances in the doc)) / log(appearances in corpus)
+     * score is calculated by : ((size of term (num of words)) * (number of appearances in the doc)) / log(appearances in corpus)
      * @param realEntities
      * @param docNo
      * @return array list of scores for each entity
@@ -144,10 +149,12 @@ public class Searcher {
         Pattern docNoSplit = Pattern.compile(docNo + ";");
         ArrayList<Double> scores = new ArrayList<>();
         for (int i = 0; i < realEntities.size(); i++) {
+            Term currentEntity = realEntities.get(i);
+            String[] strEntitySize = escape.split(currentEntity.getData());
 
-            int entitySize = realEntities.get(i).getData().length();
-            int appearancesInDoc = getNumOfAppearancesInDoc(dictionary, realEntities.get(i), docNoSplit);
-            int appearancesInCorpus = dictionary.get(realEntities.get(i)).getTotalCount();
+            int entitySize = strEntitySize.length;
+            int appearancesInDoc = getNumOfAppearancesInDoc(dictionary, currentEntity, docNoSplit);
+            int appearancesInCorpus = dictionary.get(currentEntity).getTotalCount();
 
             //calculating by formula
             double score = entitySize * appearancesInDoc;
@@ -177,9 +184,12 @@ public class Searcher {
         String[] splitter = docNoSplit.split(entitryLine);
         String contains = splitter[1];
         String strApperances = "";
+        int i = 0;
         char ch = contains.charAt(0);
         while (ch != ')'){
             strApperances += ch;
+            i++;
+            ch = contains.charAt(i);
         }
         int countApperances = Integer.parseInt(strApperances);
 
