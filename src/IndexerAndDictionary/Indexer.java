@@ -1,7 +1,7 @@
 package IndexerAndDictionary;
 
-import OuputFiles.DocumentFileHandler;
-import OuputFiles.WorkerPostingFileHandler;
+import OuputFiles.DocumentFile.DocumentFileHandler;
+import OuputFiles.PostingFile.WorkerPostingFileHandler;
 import TermsAndDocs.Docs.Document;
 import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.*;
@@ -16,13 +16,15 @@ public class Indexer {
     private TermBuilder termBuilder;
     private DocumentFileHandler documentFileHandler;
     private WorkerPostingFileHandler postFile;
+    String documentDataFilePath;
 
 
     public Indexer(ArrayList<HashMap<Term, TermDocPair>> pairsMapsList, String documentDataFilePath, String postFilePath) {
         this.pairsMapsList = pairsMapsList;
         termDescriptionMap = new HashMap<>();
         termBuilder = new TermBuilder();
-        documentFileHandler = new DocumentFileHandler(documentDataFilePath);
+        documentFileHandler = new DocumentFileHandler();
+        this.documentDataFilePath = documentDataFilePath;
         postFile = new WorkerPostingFileHandler(postFilePath);
     }
 
@@ -46,8 +48,12 @@ public class Indexer {
 
             HashSet<Term> docEntities = new HashSet<>();
 
+            int docSize = 0;
+
             //iterating through current document's map, each term at a time
             for (Map.Entry<Term, TermDocPair> entry : currentMap.entrySet()) {
+                docSize += entry.getValue().getCounter();
+
                 int currentTermCounter;
                 TermDocPair currentPair = entry.getValue();
                 document = currentPair.getDoc();
@@ -81,7 +87,7 @@ public class Indexer {
                 }
             }
             try {
-                documentFileHandler.writeDocumentDataToFile(document.getDocNo(), numOfUniqueTerms, mostCommonTermCounter, mostCommmonTerm, documentDateTerm, document.getHeader(), docEntities);
+                documentFileHandler.writeDocumentDataToFile(this.documentDataFilePath, document.getDocNo(), numOfUniqueTerms, mostCommonTermCounter, mostCommmonTerm, documentDateTerm, document.getHeader(), docSize, docEntities);
             } catch (Exception e) {
                 e.printStackTrace();
             }

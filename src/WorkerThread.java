@@ -5,7 +5,6 @@ import TermsAndDocs.Docs.Document;
 import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.Term;
 
-import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,9 +54,7 @@ public class WorkerThread implements Runnable{
                 }
             }
             Indexer indexer = new Indexer(docsPairsList, docFilePath, workerPostPath);
-            //TODO SEND BOOL
             indexer.index(toStem);
-            long end = System.currentTimeMillis();
         }
     }
 

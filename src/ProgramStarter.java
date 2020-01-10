@@ -1,15 +1,11 @@
 import IndexerAndDictionary.CountAndPointerDicValue;
-import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
 import OuputFiles.DictionaryFileHandler;
 import TermsAndDocs.Terms.Term;
-import TermsAndDocs.Terms.TermBuilder;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -18,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class ProgramStarter {
 
     /**
-     * this method starts the main program by creating workers an executing them.
+     * this method starts the GloveTrainedFilesUsage program by creating workers an executing them.
      * @param inputPath
      * @param outputPath
      * @param toStemm
@@ -38,7 +34,7 @@ public class ProgramStarter {
         for (int i = 0; i < arrays.length; i++) {
             String[] readFilesPath = arrays[i];//302-305
             String sPostFilePath = stemRelatedFolder + "\\workersFiles\\workerArray" + i + "\\";
-            String docFilePath = outputPath + "\\" + stemRelatedFolder + "\\tempDocsFiles\\docFile" + i;
+            String docFilePath = outputPath + "\\" + stemRelatedFolder + "\\DocsFiles\\docFile" + i;
             docsPath.add(docFilePath);
             WorkerThread wt = new WorkerThread(pathFolder, readFilesPath, sPostFilePath, docFilePath, stopWords,toStemm);
             executor.execute(wt);
@@ -156,7 +152,7 @@ public class ProgramStarter {
             tempDocFiles.mkdir();
         }
 
-        tempDocFilesPath = outputPath + "\\" + getStemRelatedFolder(toStem) + "\\" + "tempDocsFiles";
+        tempDocFilesPath = outputPath + "\\" + getStemRelatedFolder(toStem) + "\\" + "DocsFiles";
         File fileTooCheck = new File(tempDocFilesPath);
         if (!fileTooCheck.exists()) {
             fileTooCheck.mkdir();
