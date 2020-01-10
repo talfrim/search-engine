@@ -42,17 +42,22 @@ public class Ranker {
     /**
      * k1 parameter for bm25
      */
-    private double k1;
+    private double k1 = 2;
 
     /**
      * k1 parameter for bm25
      */
-    private double b;
+    private double b = 0.75;
 
     /**
      * This is the number of documents in the corpus
      */
     public final int numOfDocs = 472531;
+
+    /**
+     * This is the avg doc length
+     */
+    public final int avgDocLength = 200; //TODO
 
 
 
@@ -74,7 +79,7 @@ public class Ranker {
     public double rankDocument(
             ArrayList<String> queryWords, ArrayList<Integer> queryWordsTfs, ArrayList<Integer> queryWordsDfs,
              ArrayList<String> similarWords, ArrayList<Integer> similarWordsTfs, ArrayList<Integer> similarWordsDfs,
-              ArrayList<Integer> dfs, int maxTf,  ArrayList<String> docHeaderStrings)
+              int maxTf,  ArrayList<String> docHeaderStrings)
     {
         double output;
         if (!isSemantic) {
@@ -83,12 +88,42 @@ public class Ranker {
         return 0;
     }
 
-    private double getTfIdfRank(ArrayList<Integer> Tfs, ArrayList<Integer> dfs, int maxTf) {
-        return 0;
+    private double getCosSimRank(ArrayList<Integer> tfs, ArrayList<Integer> dfs) {
+        double[] queryVector = new double[tfs.size()];
+        for (int i=0; i<queryVector.length; i++) {
+            queryVector[i] = 1;
+        }
+
+        double[] docVector = new double[tfs.size()];
+        for (int i=0; i<docVector.length; i++) {
+            queryVector[i] = tfs.get(i) * getIdf(dfs.get(i));
+        }
+
+        return cosineSimilarity(queryVector,docVector);
     }
 
-    private double getBM25Rank(ArrayList<Integer> Tfs, ArrayList<Integer> dfs, int maxTf) {
-        return 0;
+    private double cosineSimilarity(double[] vectorA, double[] vectorB) {
+        double dotProduct = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+        for (int i = 0; i < vectorA.length; i++) {
+            dotProduct += vectorA[i] * vectorB[i];
+            normA += Math.pow(vectorA[i], 2);
+            normB += Math.pow(vectorB[i], 2);
+        }
+        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    }
+
+    private double getBM25Rank(ArrayList<Integer> tfs, ArrayList<Integer> dfs, int lengthOfDoc) {
+        double output=0;
+        for (int i=0; i< tfs.size(); i++) {
+            output += getBM25ForOneTerm(tfs.get(i),dfs.get(i),lengthOfDoc);
+        }
+        return output;
+    }
+
+    private double getBM25ForOneTerm(Integer tf, Integer df, int lengthOfDoc) {
+        return getIdf(df) * ((tf)*(k1+1)) / (tf+k1*(1-b+b*(lengthOfDoc/avgDocLength)));
     }
 
     /**
@@ -110,11 +145,16 @@ public class Ranker {
      * @param df
      * @return idf of given df, based on {@code numOfDocs} field
      */
-    private double getIdf(int df)
-    {
+    private double getIdf(int df) {
         return (Math.log(numOfDocs/df)) / Math.log(2);
     }
 
+    /**
+     * using stemmer class to stem given string
+     * @param toStem
+     * @return stemmed string
+     * @see Stemmer
+     */
     private String stemmStr(String toStem) {
         Stemmer stemm = new Stemmer();
         stemm.add(toStem.toCharArray(), toStem.length());
