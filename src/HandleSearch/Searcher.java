@@ -1,9 +1,10 @@
 package HandleSearch;
 
+import HandleParse.DataConfiguration.Stemmer;
+import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
 import OuputFiles.DocumentFile.DocumentFileHandler;
-import OuputFiles.DocumentFile.FindDocData;
 import OuputFiles.PostingFile.FindTermData;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
@@ -14,9 +15,6 @@ import datamuse.JSONParse;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import static IndexerAndDictionary.Indexer.dictionary;
@@ -30,14 +28,6 @@ public class Searcher {
     private static Pattern escape = Pattern.compile("[ ]");
     private static Pattern splitByEntities = Pattern.compile("[E][N][T][I][T][I][E][S][:]");
     private static Pattern splitByDotCom = Pattern.compile("[\\;]");
-    private ArrayList<String> queryWords;
-
-
-    /**
-     * ArrayList that will hold the semantically close words to the query
-     * (only if {@code isSemantic} is true)
-     */
-    private ArrayList<String> semanticallyCloseWords;
 
     /**
      * Field mentioning if we should take into account the result of the semantic connection
@@ -45,21 +35,143 @@ public class Searcher {
      * If it is false, only original query words will be taken into account.
      */
     private boolean isSemantic;
+    private boolean isStemm;
+    private Dictionary dictionary;
 
-
-    public Searcher(ArrayList<String> docsPath, boolean isSemantic) {
+    public Searcher(ArrayList<String> docsPath, boolean isSemantic, boolean isStemm, Dictionary dictionary) {
         this.docsPath = docsPath;
         this.isSemantic = isSemantic;
-        queryWords = new ArrayList<>();
-        semanticallyCloseWords = isSemantic ? getSemanticallyCloseWords() : new ArrayList<>();
+        this.isStemm = isStemm;
+        this.dictionary = dictionary;
     }
 
+    /**
+     * this method is responsible for the functionality of the class
+     * it receives a word and search for the documents which contains this term
+     * then we calculate for each of the relevant docs it's rank
+     * we are returning at most 50 relevant docs by order
+     * @param query
+     * @return
+     */
+    public ArrayList<String> find(ArrayList<String> query){
+        ArrayList<String> semanticallyCloseWords = new ArrayList<>();
+        if(isSemantic)
+            semanticallyCloseWords = getSemanticallyCloseWords(query);
+        //changing the words of the query and semantically close words so they would fit to the dictionary && posting file terms
+        parseQuery(query, isStemm);
+        parseQuery(semanticallyCloseWords, isStemm);
+        TermBuilder tb = new TermBuilder();
+        FindTermData finder = new FindTermData();
+        for (String word : query){
+            Term currentTerm = tb.buildTerm("RegularTerm", word);
+            CountAndPointerDicValue dicVal = dictionary.get(currentTerm);
+            if(dicVal == null){
+                currentTerm = tb.buildTerm("CapsTerm", word.toUpperCase());
+                dicVal = dictionary.get(currentTerm);
+            }
+            if(dicVal != null){
+                String path = dicVal.getPointer().getFileStr();
+                String termLine = finder.findLine(path, currentTerm.getData());
+
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * parsing the query's words so we'll get hit
+     * @param query
+     * @param isStemm
+     */
+    private void parseQuery(ArrayList<String> query, boolean isStemm) {
+        if(isStemm) {
+            ArrayList<String> newQuery = new ArrayList<>();
+            for(int i = 0; i < query.size(); i++){
+                String word = query.get(i);
+                word = word.toLowerCase();
+                word = stemmStr(word);
+                newQuery.add(word);
+            }
+            query.clear();
+            for(String word : newQuery) {
+                query.add(word);
+            }
+        }
+    }
+
+    /**
+     * Using online\offline methods to get similar words
+     * (determined by {@code isSemanticOnline} field
+     * @return ArrayList of similar words
+     */
+    public ArrayList<String> getSemanticallyCloseWords(ArrayList<String> query) {
+        try {
+            return  getSemanticallyCloseWordsOnline(query);
+        }
+        catch (Exception e)
+        {
+            return getSemanticlyCloseWordsOffline(query);
+        }
+    }
+
+
+    /**
+     * Using Word2vecJava to get a list of similar words
+     * *Using pre-trained model
+     * *If unknown wors is found, we simply ignore it
+     * @return ArrayList of similar words
+     * @param query
+     */
+    private ArrayList<String> getSemanticlyCloseWordsOffline(ArrayList<String> query) {
+        ArrayList<String> output = new ArrayList<>();
+        try {
+            Word2VecModel model = Word2VecModel.fromTextFile(new File("data\\model\\word2vec.c.output.model.txt"));
+            com.medallia.word2vec.Searcher semanticSearcher = model.forSearch();
+            int numOfResults = 11;
+            for (int i = 0; i < query.size(); i++) {
+                List<com.medallia.word2vec.Searcher.Match> matches = semanticSearcher.getMatches(query.get(i).toLowerCase(), numOfResults);
+                for (com.medallia.word2vec.Searcher.Match match : matches) {
+                    if (!match.match().equals(query.get(i)))
+                        output.add(match.match());
+                }
+            }
+        } catch (Exception e) {
+        }
+        finally {
+            return output;
+        }
+    }
+
+    /**
+     * Using datamuse API to get a list of similar words
+     *
+     * @return ArrayList of similar words
+     * @apiNote requires internet connection!
+     * @param query
+     */
+    private ArrayList<String> getSemanticallyCloseWordsOnline(ArrayList<String> query) {
+        ArrayList<String> output = new ArrayList<>();
+        DatamuseQuery datamuseQuery = new DatamuseQuery();
+        JSONParse jSONParse = new JSONParse();
+        int i = 1;
+        for (String word : query) {
+            String initCloseWords = datamuseQuery.findSimilar(word);
+            String[] parsedCloseWords = jSONParse.parseWords(initCloseWords);
+            addArrayToList(parsedCloseWords, output);
+            if(i == 10)
+                break;
+            i++;
+        }
+        return output;
+
+    }
 
     /**
      * @param docNo
      * @return {@code ArrayList) of the five (if exists) most dominating entities in the doc
      */
-    public ArrayList<Term> FiveTopEntities(String docNo) {
+    public ArrayList<Term> fiveTopEntities(String docNo) {
         Dictionary dictionary = Indexer.dictionary;
 
         //finding the doc's properties
@@ -172,68 +284,6 @@ public class Searcher {
         return realEntities.remove(index);
     }
 
-    /**
-     * Using online\offline methods to get similar words
-     * (determined by {@code isSemanticOnline} field
-     * @return ArrayList of similar words
-     */
-    public ArrayList<String> getSemanticallyCloseWords() {
-        try {
-          return  getSemanticallyCloseWordsOnline();
-        }
-        catch (Exception e)
-        {
-           return getSemanticlyCloseWordsOffline();
-        }
-    }
-
-
-    /**
-     * Using Word2vecJava to get a list of similar words
-     * *Using pre-trained model
-     * *If unknown wors is found, we simply ignore it
-     * @return ArrayList of similar words
-     */
-    private ArrayList<String> getSemanticlyCloseWordsOffline() {
-        ArrayList<String> output = new ArrayList<>();
-        try {
-            Word2VecModel model = Word2VecModel.fromTextFile(new File("data\\model\\word2vec.c.output.model.txt"));
-            com.medallia.word2vec.Searcher semanticSearcher = model.forSearch();
-            int numOfResults = 11;
-            for (int i = 0; i < queryWords.size(); i++) {
-                List<com.medallia.word2vec.Searcher.Match> matches = semanticSearcher.getMatches(queryWords.get(i).toLowerCase(), numOfResults);
-                for (com.medallia.word2vec.Searcher.Match match : matches) {
-                    if (!match.match().equals(queryWords.get(i)))
-                        output.add(match.match());
-                }
-            }
-        } catch (Exception e) {
-            //e.printStackTrace();
-        }
-        finally {
-            return output;
-        }
-    }
-
-    /**
-     * Using datamuse API to get a list of similar words
-     *
-     * @return ArrayList of similar words
-     * @apiNote requires internet connection!
-     */
-    private ArrayList<String> getSemanticallyCloseWordsOnline() {
-        ArrayList<String> output = new ArrayList<>();
-            DatamuseQuery datamuseQuery = new DatamuseQuery();
-            JSONParse jSONParse = new JSONParse();
-            for (String word : queryWords) {
-                String initCloseWords = datamuseQuery.findSimilar(word);
-                String[] parsedCloseWords = jSONParse.parseWords(initCloseWords);
-                addArrayToList(parsedCloseWords, output);
-            }
-            return output;
-
-    }
-
 
     /**
      * function that adds all the strings of a given string array to the given list
@@ -243,6 +293,14 @@ public class Searcher {
         ) {
             list.add(word);
         }
+    }
+
+
+    private String stemmStr(String toStem) {
+        Stemmer stemm = new Stemmer();
+        stemm.add(toStem.toCharArray(), toStem.length());
+        stemm.stem();
+        return (stemm.toString());
     }
 
 }
