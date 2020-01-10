@@ -111,13 +111,6 @@ public class Parse {
         initialWords = deleteEmptyWords(initialWords);
         parseTextToList(initialWords, pairs, document, _DocText);
 
-        //header parsing
-        String header = document.getHeader();
-        initialWords = splitBySpaceToArrayList(header);
-        initialWords = handlePunctuation(initialWords);
-        initialWords = deleteEmptyWords(initialWords);
-        parseTextToList(initialWords, pairs, document, "header");
-
         //add date pair
         String date = document.getDate();
         initialWords = splitBySpaceToArrayList(date);
@@ -558,18 +551,9 @@ public class Parse {
     private void addToPairs(TermDocPair termDocPair, HashMap<Term, TermDocPair> pairs, String termType) {
         Term term = termDocPair.getTerm();
         if (pairs.containsKey(term)) {
-            if (termType == _DocText)
-                pairs.get(term).incrementCounter();//add to counter for existing pair
-            else {
-                pairs.get(term).setCounter(pairs.get(term).getCounter() + (int) (pairs.size() * 0.05));
-            }
+            pairs.get(term).incrementCounter();//add to counter for existing pair
         } else {
-            if (termType == _DocText)
-                pairs.put(term, termDocPair);//add new pair to the hash
-            else {
-                termDocPair.setCounter((int) (pairs.size() * 0.05));
-                pairs.put(term, termDocPair);
-            }
+            pairs.put(term, termDocPair);//add new pair to the hash
         }
     }
 

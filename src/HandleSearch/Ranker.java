@@ -63,13 +63,13 @@ public class Ranker {
      * original query, and if {@code isSemantic} is true with the semantic close words also.
      * @return ranking
      */
-    public double rankDocument(ArrayList<String> queryWords, String docNo, ArrayList<Integer> queryTfs, ArrayList<Integer> similarWordsTfs, int maxTf, String docHeader) {
+    public double rankDocument( ArrayList<Integer> queryTfs, ArrayList<Integer> similarWordsTfs, int maxTf, String docHeader) {
         double output;
         if (isSemantic) {
-            output = weightOfOriginalQuery/2 * getBM25Rank(docNo,queryTfs,maxTf,docHeader)
-                    + weightOfOriginalQuery/2 * getTfIdfRank(docNo,queryTfs,maxTf,docHeader)
-                    + (1-weightOfOriginalQuery)/2 * getBM25Rank(docNo,similarWordsTfs,maxTf,docHeader)
-                    + (1-weightOfOriginalQuery)/2 * getTfIdfRank(docNo,similarWordsTfs,maxTf,docHeader);
+            output = weightOfOriginalQuery/2 * getBM25Rank(queryTfs,maxTf,docHeader)
+                    + weightOfOriginalQuery/2 * getTfIdfRank(queryTfs,maxTf,docHeader)
+                    + (1-weightOfOriginalQuery)/2 * getBM25Rank(similarWordsTfs,maxTf,docHeader)
+                    + (1-weightOfOriginalQuery)/2 * getTfIdfRank(similarWordsTfs,maxTf,docHeader);
         }
         else {
         }
@@ -77,11 +77,11 @@ public class Ranker {
     }
 
 
-    private double getTfIdfRank(String docNo, ArrayList<Integer> queryTfs, int maxTf, String docHeader) {
+    private double getTfIdfRank(ArrayList<Integer> queryTfs, int maxTf, String docHeader) {
         return 0;
     }
 
-    private double getBM25Rank(String docNo, ArrayList<Integer> queryTfs, int maxTf, String docHeader) {
+    private double getBM25Rank(ArrayList<Integer> queryTfs, int maxTf, String docHeader) {
         return 0;
     }
 

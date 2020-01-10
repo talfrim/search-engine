@@ -100,43 +100,6 @@ public class Searcher {
         }
     }
 
-    /**
-     * this method gets {@code String docNo) and returns all of the doc's properties from our the docs file via string line
-     * @param docNo
-     * @return String line of data
-     */
-    public String searchDocInFile(String docNo)
-    {
-        int numOfFiles = 6;
-        ArrayList<FindDocData> answers = new ArrayList<>();
-        ExecutorService pool = Executors.newFixedThreadPool(numOfFiles);
-
-        //using threads to search through different files
-        for (int i = 0; i < numOfFiles; i++) {
-            try {
-                BufferedReader reader = new BufferedReader(new FileReader(docsPath.get(i)));
-                FindDocData findDocData = new FindDocData(reader, docNo);
-                answers.add(findDocData);
-                pool.execute(findDocData);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-        }
-        try {
-            pool.shutdown();
-            pool.awaitTermination(200000, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            
-            e.printStackTrace();
-        }
-        //returning the line of doc's data
-        for(FindDocData finder : answers) {
-            if(finder.getDocData() != null) {
-                return finder.getDocData();
-            }
-        }
-        return null;
-    }
 
     /**
      * this method is responsible for returning the scores for all the entity terms in a document
