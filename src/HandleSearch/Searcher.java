@@ -232,6 +232,7 @@ public class Searcher {
             String[] parsedCloseWords = jSONParse.parseWords(initCloseWords);
             addArrayToList(parsedCloseWords,output);
         }
+
         return output;
     }
 
