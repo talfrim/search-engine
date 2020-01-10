@@ -18,7 +18,6 @@ public class Dictionary {
     private static Mutex mutex = new Mutex();
 
     public Dictionary() {
-
         dictionaryTable = new ConcurrentHashMap<>();
     }
 
