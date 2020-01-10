@@ -94,7 +94,7 @@ public class Parse {
     }
 
     /**
-     * main method of the class - parses documents to terms
+     * GloveTrainedFilesUsage method of the class - parses documents to terms
      *
      * @param document
      * @return ArrayList of termDocPairs
