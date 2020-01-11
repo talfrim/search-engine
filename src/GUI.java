@@ -285,11 +285,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         }
         Searcher searcher = new Searcher(generateDocsFiles(), similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
         ArrayList<DocumentDataToView> answer = searcher.search(query,entities);
-<<<<<<< HEAD
-        showResults(answer);
-=======
         this.showResultsWithoutIds(answer);
->>>>>>> a04a0e72d31a333285d1c38c9d05886ef4cfaa1e
         if (writeToFile) {
 
         }
