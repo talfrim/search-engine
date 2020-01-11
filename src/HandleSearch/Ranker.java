@@ -16,11 +16,6 @@ public class Ranker {
      */
     private boolean isSemantic;
 
-    /**
-     * Field mentioning if in case of ranking with semantics we will use the online option
-     *
-     */
-    private boolean isSemanticOnline;
 
     /**
      * The percentage given to the ranking functions on the original query words when calculating the rank in case of taking into account
@@ -63,7 +58,6 @@ public class Ranker {
      */
     public Ranker(boolean isSemantic, boolean isSemanticOnline) {
         this.isSemantic = isSemantic;
-        this.isSemanticOnline=isSemanticOnline;
     }
 
     /**

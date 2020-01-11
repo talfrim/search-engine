@@ -1,7 +1,7 @@
 package HandleSearch;
 
 import HandleParse.DataConfiguration.Stemmer;
-import HandleSearch.DocDataHolder.DocNecessaryData;
+import HandleSearch.DocDataHolders.DocNecessaryData;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
@@ -364,5 +364,6 @@ public class Searcher {
         stemm.stem();
         return (stemm.toString());
     }
+
 
 }

@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ProgramStarter {
 
+
     /**
      * this method starts the GloveTrainedFilesUsage program by creating workers an executing them.
      * @param inputPath
@@ -73,7 +74,7 @@ public class ProgramStarter {
      * @param path
      * @return hashSet of all the sth given stop words
      */
-    private static HashSet<String> readStopWords(String path) {
+    public static HashSet<String> readStopWords(String path) {
         File file = new File(path);
         BufferedReader br;
         HashSet<String> stopWords = new HashSet<>();
@@ -157,16 +158,6 @@ public class ProgramStarter {
         if (!fileTooCheck.exists()) {
             fileTooCheck.mkdir();
         }
-
-       // for (int i = 0; i < 6; i++) {
-       //     String path = tempDocFilesPath + "\\docFile" + i;
-       //     File workerArrayDir = new File(path);
-       //     if (!workerArrayDir.exists()) {
-       //         workerArrayDir.mkdir();
-       //     }
-       // }
-
-
 
     }
 
