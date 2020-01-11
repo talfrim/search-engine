@@ -17,12 +17,6 @@ public class Ranker {
     private boolean isSemantic;
 
     /**
-     * Field mentioning if in case of ranking with semantics we will use the online option
-     *
-     */
-    private boolean isSemanticOnline;
-
-    /**
      * The percentage given to the ranking functions on the original query words when calculating the rank in case of taking into account
      * the semantically close words.
      * It is slitted by two for the BM25 an the TFIDF ranking methods.
@@ -59,11 +53,9 @@ public class Ranker {
 
     /**
      * @param isSemantic field mentioning if we should take into account the result of the semantic connection
-     * @param isSemanticOnline mentioning if in case of ranking with semantics we will use the online option
      */
-    public Ranker(boolean isSemantic, boolean isSemanticOnline) {
+    public Ranker(boolean isSemantic) {
         this.isSemantic = isSemantic;
-        this.isSemanticOnline=isSemanticOnline;
     }
 
     /**
@@ -137,11 +129,6 @@ public class Ranker {
      */
     private int isTermInHeader(String term, ArrayList<String> docHeaderStrings) {
         ArrayList<String> headerAfterStemming=new ArrayList<>();
-        for (int i=0; i<docHeaderStrings.size(); i++) {
-            String lower = docHeaderStrings.get(0).toLowerCase();
-            String stemmed = stemmStr(lower);
-            headerAfterStemming.add(stemmed);
-        }
         return headerAfterStemming.contains(term) ? 1 : 0 ;
     }
 
@@ -166,20 +153,5 @@ public class Ranker {
     private double getIdf(int df) {
         return (Math.log(numOfDocs/df)) / Math.log(2);
     }
-
-    /**
-     * using stemmer class to stem given string
-     * @param toStem
-     * @return stemmed string
-     * @see Stemmer
-     */
-    private String stemmStr(String toStem) {
-        Stemmer stemm = new Stemmer();
-        stemm.add(toStem.toCharArray(), toStem.length());
-        stemm.stem();
-        return (stemm.toString());
-    }
-
-
 
 }
