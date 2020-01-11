@@ -17,10 +17,8 @@ import datamuse.DatamuseQuery;
 import datamuse.JSONParse;
 import javafx.util.Pair;
 
-import java.util.*;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**

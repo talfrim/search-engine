@@ -1,10 +1,10 @@
 import HandleParse.Parse;
+import HandleSearch.DocDataHolders.DocumentDataToView;
 import HandleSearch.Searcher;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
 import OuputFiles.DictionaryFileHandler;
-import HandleSearch.DocDataHolders.DocumentDataToView;
 import TermsAndDocs.TermCounterPair;
 import TermsAndDocs.Terms.Term;
 import javafx.application.Application;
@@ -107,6 +107,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
         //buttons
         startButton = new Button("Start pre-processing");
+        startButton.setMinHeight(50);
         startButton.setOnAction(this);
         inputPathBrowseButton = new Button("Browse input directory");
         inputPathBrowseButton.setOnAction(e -> {
@@ -221,25 +222,68 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     private void runQueriesFromFile(String path, boolean similarWords) {
         try {
-            ArrayList<String> queries = QueryFileUtil.extractQueries(path);
+            HashMap<Integer, String> queries = QueryFileUtil.extractQueries(path);
         } catch (Exception e) {
         }
     }
 
     private void runSingleQuery(String query, boolean similarWords) {
-        boolean writeToFile=writeResultsToFileCheckBox.isSelected();
-        if (dictionary == null)
-            loadDictionaryToMemory(outputPath);
+        boolean writeToFile = writeResultsToFileCheckBox.isSelected();
+        boolean entities = showEntitiesCheckBox.isSelected();
+        if (dictionary == null) {
+            try {
+                loadDictionaryToMemory(outputPath);
+            } catch (Exception e) {
+                AlertBox.display("", "No dictionary in memory!");
+            }
+        }
         Searcher searcher = new Searcher(generateDocsFiles(), similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
-        //ArrayList<DocumentDataToView> answer = searcher.search(query);
-        if (writeToFile)
-        {
+        //ArrayList<DocumentDataToView> answer = searcher.search(query,entities);
+        //showResults(answer);
+        if (writeToFile) {
 
         }
+
     }
 
+    private void showResults(ArrayList<DocumentDataToView> answer) {
+        Stage stage = new Stage();
+        TableView tableView = new TableView();
+
+        TableColumn<String, DocumentDataToView> docNoCol = new TableColumn("DocNo");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("docNo"));
+        TableColumn<String, DocumentDataToView> dateCol = new TableColumn("Doc Date");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("date"));
+        TableColumn<String, DocumentDataToView> entitiesCol = new TableColumn("Entities");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
+
+        tableView.getColumns().add(docNoCol);
+        if (showDateCheckBox.isSelected())
+            tableView.getColumns().add(dateCol);
+        if (showEntitiesCheckBox.isSelected())
+            tableView.getColumns().add(entitiesCol);
+
+        for (int i = 0; i < answer.size(); i++) {
+            tableView.getItems().add(answer.get(i));
+        }
+
+
+
+        VBox vbox = new VBox(tableView);
+        Scene scene = new Scene(vbox);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+
     private HashSet<String> generateStopWords() {
-        return ProgramStarter.readStopWords(inputPath + "\\05 stop_words");
+        try {
+            return ProgramStarter.readStopWords(inputPath + "\\05 stop_words");
+        } catch (Exception e) {
+            AlertBox.display("", "Stop words file not found!");
+            return null;
+        }
+
     }
 
     private ArrayList<String> generateDocsFiles() {
@@ -259,87 +303,89 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         return "noStemOur";
     }
 
-    private DocumentDataToView getDocDataToViewForQuery (String query,boolean similarWords){
-            HashMap<String, String> h;
-            return null;
-        }
 
-        /**
-         * loads doctionary from outputPath, according to stemming box
-         * @param outputPath
-         */
-        private void loadDictionaryToMemory (String outputPath){
+    /**
+     * loads doctionary from outputPath, according to stemming box
+     *
+     * @param outputPath
+     */
+    private void loadDictionaryToMemory(String outputPath) {
+        try {
             boolean isWithStemming = stemCheckBox.isSelected();
             DictionaryFileHandler dfh = new DictionaryFileHandler(new Dictionary());
             this.dictionary = dfh.readFromFile(outputPath, isWithStemming);
             System.out.println("loaded");
+        } catch (Exception e) {
+            AlertBox.display("", "No dictionary in memory!");
         }
+    }
 
-        /**
-         * showing sorted dictionary
-         */
-        private void showSortedDictionary () {
-            Stage stage = new Stage();
-            TableView tableView = new TableView();
-            TableColumn<String, TermCounterPair> termCol = new TableColumn("Term");
-            termCol.setCellValueFactory(new PropertyValueFactory<>("termStr"));
-            TableColumn<Integer, TermCounterPair> countCol = new TableColumn("Count");
-            countCol.setCellValueFactory(new PropertyValueFactory<>("count"));
+    /**
+     * showing sorted dictionary
+     */
+    private void showSortedDictionary() {
+        Stage stage = new Stage();
+        TableView tableView = new TableView();
+        TableColumn<String, TermCounterPair> termCol = new TableColumn("Term");
+        termCol.setCellValueFactory(new PropertyValueFactory<>("termStr"));
+        TableColumn<Integer, TermCounterPair> countCol = new TableColumn("Count");
+        countCol.setCellValueFactory(new PropertyValueFactory<>("count"));
 
-            tableView.getColumns().add(termCol);
-            tableView.getColumns().add(countCol);
+        tableView.getColumns().add(termCol);
+        tableView.getColumns().add(countCol);
 
-            for (Map.Entry<Term, CountAndPointerDicValue> entry : dictionary.dictionaryTable.entrySet()) {
-                tableView.getItems().add(new TermCounterPair(entry.getKey().getData(), entry.getValue().getTotalCount()));
-            }
-
-
-            VBox vbox = new VBox(tableView);
-            Scene scene = new Scene(vbox);
-            stage.setScene(scene);
-            stage.show();
+        for (Map.Entry<Term, CountAndPointerDicValue> entry : dictionary.dictionaryTable.entrySet()) {
+            tableView.getItems().add(new TermCounterPair(entry.getKey().getData(), entry.getValue().getTotalCount()));
         }
 
 
-        /**
-         * delete info from dictionary if files exists
-         * @param outputPath
-         */
-        private void reset (String outputPath){
-            File index = new File(outputPath);
-            String[] entries = index.list();
-            if (entries == null) {
+        VBox vbox = new VBox(tableView);
+        Scene scene = new Scene(vbox);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+
+    /**
+     * delete info from dictionary if files exists
+     *
+     * @param outputPath
+     */
+    private void reset(String outputPath) {
+        File index = new File(outputPath);
+        String[] entries = index.list();
+        if (entries == null) {
+            AlertBox.display("", "Nothing to delete!");
+            return;
+        }
+        for (String s : entries) {
+            File currentFile = new File(index.getPath(), s);
+            if (!currentFile.exists()) {
                 AlertBox.display("", "Nothing to delete!");
                 return;
             }
-            for (String s : entries) {
-                File currentFile = new File(index.getPath(), s);
-                if (!currentFile.exists()) {
-                    AlertBox.display("", "Nothing to delete!");
-                    return;
-                }
-                currentFile.delete();
-            }
-            index.delete();
-            Parse.deleteStatics();
-            Dictionary.deleteMutex();
-            Indexer.deleteDictionary();
+            currentFile.delete();
         }
-
-        /**
-         * starts the processing
-         *
-         * @param inputPath
-         * @param outputPath
-         * @param toStemm
-         */
-        private void startProgram (String inputPath, String outputPath,boolean toStemm){
-            ProgramStarter.startProgram(inputPath, outputPath, toStemm);
-        }
-
-        public static void main (String[]args){
-            launch(args);
-        }
+        index.delete();
+        Parse.deleteStatics();
+        Dictionary.deleteMutex();
+        Indexer.deleteDictionary();
     }
+
+    /**
+     * starts the processing
+     *
+     * @param inputPath
+     * @param outputPath
+     * @param toStemm
+     */
+    private void startProgram(String inputPath, String outputPath, boolean toStemm) {
+        ProgramStarter.startProgram(inputPath, outputPath, toStemm);
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
 
 
