@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 /**
  * this class is responsible for the return of all the relevant docs for a given query
  * this class uses the class Ranker for that purpose
- */
+ */ 
 public class Searcher {
     private ArrayList<String> docsPath;
     private static Pattern dfPattern = Pattern.compile("[d][f][\\{]");
