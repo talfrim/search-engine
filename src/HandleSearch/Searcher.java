@@ -1,17 +1,21 @@
 package HandleSearch;
 
 import HandleParse.DataConfiguration.Stemmer;
+import HandleSearch.DocDataHolder.DocNecessaryData;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
 import OuputFiles.DocumentFile.DocumentFileHandler;
 import OuputFiles.PostingFile.FindTermData;
+import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 import com.medallia.word2vec.Word2VecModel;
 import datamuse.DatamuseQuery;
 import datamuse.JSONParse;
+import javafx.util.Pair;
 
+import java.util.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,9 +27,12 @@ import java.util.regex.Pattern;
  */
 public class Searcher {
     private ArrayList<String> docsPath;
+    private static Pattern dfPattern = Pattern.compile("[d][f][\\{]");
     private static Pattern escape = Pattern.compile("[ ]");
     private static Pattern splitByEntities = Pattern.compile("[E][N][T][I][T][I][E][S][:]");
     private static Pattern splitByDotCom = Pattern.compile("[\\;]");
+    private static Pattern splitByBracket = Pattern.compile("[\\(]");
+    private HashSet<String> stopWords;
 
     /**
      * Field mentioning if we should take into account the result of the semantic connection
@@ -36,11 +43,12 @@ public class Searcher {
     private boolean isStemm;
     private Dictionary dictionary;
 
-    public Searcher(ArrayList<String> docsPath, boolean isSemantic, boolean isStemm, Dictionary dictionary) {
+    public Searcher(ArrayList<String> docsPath, boolean isSemantic, boolean isStemm, Dictionary dictionary, HashSet<String> stopWords) {
         this.docsPath = docsPath;
         this.isSemantic = isSemantic;
         this.isStemm = isStemm;
         this.dictionary = dictionary;
+        this.stopWords = stopWords;
     }
 
     /**
@@ -51,51 +59,103 @@ public class Searcher {
      * @param query
      * @return
      */
-    public ArrayList<String> find(ArrayList<String> query){
+    public ArrayList<String> search(ArrayList<String> query){
         ArrayList<String> semanticallyCloseWords = new ArrayList<>();
         if(isSemantic)
             semanticallyCloseWords = getSemanticallyCloseWords(query);
         //changing the words of the query and semantically close words so they would fit to the dictionary && posting file terms
-        parseQuery(query, isStemm);
-        parseQuery(semanticallyCloseWords, isStemm);
-        TermBuilder tb = new TermBuilder();
-        FindTermData finder = new FindTermData();
-        for (String word : query){
-            Term currentTerm = tb.buildTerm("RegularTerm", word);
-            CountAndPointerDicValue dicVal = dictionary.get(currentTerm);
-            if(dicVal == null){
-                currentTerm = tb.buildTerm("CapsTerm", word.toUpperCase());
-                dicVal = dictionary.get(currentTerm);
+        ArrayList<Term> queryTerms = parseQueryAndHeader(query);
+        ArrayList<Term> semanticTerms = parseQueryAndHeader(semanticallyCloseWords);
+
+        //finding the posting data for each term
+        ArrayList<Pair<Term, String>> queryTermPostingData = getPostData(queryTerms);
+        ArrayList<Pair<Term, String>> semanticTermPostingData = getPostData(semanticTerms);
+
+        //TODO object DocNecessaryData
+        //TODO extracting from hashes all the docNos
+        //finding the doc file data for each term
+        ArrayList<Pair<String, DocNecessaryData>> docsFileData = getDocsData(queryTermPostingData, semanticTermPostingData);
+
+
+        return null;
+    }
+
+    /**
+     * this method is filling every
+     * @param queryTermPostingData
+     * @param semanticTermPostingData
+     * @return
+     */
+    private ArrayList<Pair<String, DocNecessaryData>> getDocsData(ArrayList<Pair<Term, String>> queryTermPostingData,
+                                                          ArrayList<Pair<Term, String>> semanticTermPostingData) {
+        ArrayList<Pair<String, DocNecessaryData>> docsDataHash = new ArrayList<>();
+        HashMap<String, DocNecessaryData> hashChecker = new HashMap<>();
+        for (int p = 0; p < queryTermPostingData.size(); p++) {
+            Pair<Term, String> entry = queryTermPostingData.get(p);
+            String termPostingData = entry.getValue();
+            //finding term DF
+            String[] splitterDf = dfPattern.split(termPostingData);
+            String containsDF = splitterDf[1];
+            int i = 0;
+            char ch = containsDF.charAt(i);
+            String dfStr = "";
+            while (ch != '}'){
+                dfStr += ch;
+                i++;
+                ch = containsDF.charAt(i);
             }
+            int termDf = Integer.parseInt(dfStr);
+
+            //extracting docNo && tf
+            String containsNotDf = splitterDf[0];
+            String[] splitterTfDocNo = splitByBracket.split(containsNotDf);
+            for(int k = 1; k < splitterTfDocNo.length; k++){
+                String docNoTfCurrent = splitterTfDocNo[k];
+                String[] splitter = splitByDotCom.split(docNoTfCurrent);
+                String currentDocNo = splitter[0];
+                if(hashChecker.get(currentDocNo) == null){
+
+                }
+                else {
+                }
+            }
+
+        }
+
+        return docsDataHash;
+    }
+
+    /**
+     * @param terms
+     * @return hash of all the terms as keys and thier data in post file (String) as value
+     */
+    private ArrayList<Pair<Term, String>> getPostData(ArrayList<Term> terms) {
+        ArrayList<Pair<Term, String>> termPostingData = new ArrayList<>();
+        FindTermData finder = new FindTermData();
+        for (Term currentTerm : terms){
+            CountAndPointerDicValue dicVal = dictionary.get(currentTerm);
             if(dicVal != null){
                 String path = dicVal.getPointer().getFileStr();
                 String termLine = finder.findLine(path, currentTerm.getData());
-
+                termPostingData.add(new Pair<>(currentTerm, termLine));
             }
         }
-        return null;
+        return termPostingData;
     }
 
 
     /**
-     * parsing the query's words so we'll get hit
+     * parsing the query's words so we'll get hit in the dictionary
      * @param query
-     * @param isStemm
      */
-    private void parseQuery(ArrayList<String> query, boolean isStemm) {
-        if(isStemm) {
-            ArrayList<String> newQuery = new ArrayList<>();
-            for(int i = 0; i < query.size(); i++){
-                String word = query.get(i);
-                word = word.toLowerCase();
-                word = stemmStr(word);
-                newQuery.add(word);
-            }
-            query.clear();
-            for(String word : newQuery) {
-                query.add(word);
-            }
+    private ArrayList<Term> parseQueryAndHeader(ArrayList<String> query) {
+        SearcherParse sp = new SearcherParse(this.stopWords, this.isStemm);
+        HashMap<Term, TermDocPair> hash= sp.parseForSearcher(query);
+        ArrayList<Term> queryTerms = new ArrayList<>();
+        for (Map.Entry<Term, TermDocPair> entry : hash.entrySet()) {
+            queryTerms.add(entry.getKey());
         }
+        return queryTerms;
     }
 
     /**
@@ -109,7 +169,7 @@ public class Searcher {
         }
         catch (Exception e)
         {
-            return getSemanticlyCloseWordsOffline(query);
+            return getSemanticallyCloseWordsOffline(query);
         }
     }
 
@@ -121,7 +181,7 @@ public class Searcher {
      * @return ArrayList of similar words
      * @param query
      */
-    private ArrayList<String> getSemanticlyCloseWordsOffline(ArrayList<String> query) {
+    private ArrayList<String> getSemanticallyCloseWordsOffline(ArrayList<String> query) {
         ArrayList<String> output = new ArrayList<>();
         try {
             Word2VecModel model = Word2VecModel.fromTextFile(new File("data\\model\\word2vec.c.output.model.txt"));

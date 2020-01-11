@@ -20,41 +20,41 @@ import java.util.regex.Pattern;
  * Class represents a parses that fills the 'terms' list for a given document ('parse' method)
  */
 public class Parse {
-    private static Pattern splitBySigns = Pattern.compile("[\\|\\:\\;\\)\\(\\?\\{\\}\\`\\+\\_\\&\\^\"\\!*\\[\\]]|['][s]");
-    private static Pattern notNumbers = Pattern.compile("[^0-9]+");
-    private static Pattern numbers = Pattern.compile("[-]?[0-9]+|[-]?[0-9]+[\\.][0-9]+");
-    private static Pattern words = Pattern.compile("[a-zA-Z]+[-]?[a-zA-Z]+");
-    private static Pattern hyphenControl = Pattern.compile("[-]+");
-    private static Pattern zitata = Pattern.compile("[']");
-    private static Pattern slash = Pattern.compile("[/]+");
-    private static Pattern splitDots = Pattern.compile("[\\.]");
-    private static Pattern deleteTitles = Pattern.compile("[<][^>]*[>]");
-    private static Pattern splitSpaces = Pattern.compile("[\\s]");
-    private static Pattern numOrChar = Pattern.compile("[0-9a-zA-Z]");
-    private static Pattern dotZero = Pattern.compile("[0-9]+[\\.][0]");
-    private static HashSet<String> monthsAndShortMonths = new HashSet<>(Arrays.asList
+    protected static Pattern splitBySigns = Pattern.compile("[\\|\\:\\;\\)\\(\\?\\{\\}\\`\\+\\_\\&\\^\"\\!*\\[\\]]|['][s]");
+    protected static Pattern notNumbers = Pattern.compile("[^0-9]+");
+    protected static Pattern numbers = Pattern.compile("[-]?[0-9]+|[-]?[0-9]+[\\.][0-9]+");
+    protected static Pattern words = Pattern.compile("[a-zA-Z]+[-]?[a-zA-Z]+");
+    protected static Pattern hyphenControl = Pattern.compile("[-]+");
+    protected static Pattern zitata = Pattern.compile("[']");
+    protected static Pattern slash = Pattern.compile("[/]+");
+    protected static Pattern splitDots = Pattern.compile("[\\.]");
+    protected static Pattern deleteTitles = Pattern.compile("[<][^>]*[>]");
+    protected static Pattern splitSpaces = Pattern.compile("[\\s]");
+    protected static Pattern numOrChar = Pattern.compile("[0-9a-zA-Z]");
+    protected static Pattern dotZero = Pattern.compile("[0-9]+[\\.][0]");
+    protected static HashSet<String> monthsAndShortMonths = new HashSet<>(Arrays.asList
             ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December",
                     "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
                     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
                     "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"));
-    private static HashSet<String> currencies = new HashSet<>(Arrays.asList("dollars", "Dollars", "euro", "yuan", "yen", "pounds", "peso", "rupee", "ruble",
+    protected static HashSet<String> currencies = new HashSet<>(Arrays.asList("dollars", "Dollars", "euro", "yuan", "yen", "pounds", "peso", "rupee", "ruble",
             "franc", "won", "lira", "krone", "zloty", "baht"));
-    private static Pattern commas = Pattern.compile("[\\,]");
-    private static  HashSet<String> unitsOfMeasurement = new HashSet<>(Arrays.asList("meters", "meter", "kilometers", "kilometer", "km", "KM", "liter", "liters", "milliliters", "milliliter", "mile", "miles"));
-    private TermBuilder termBuilder;
-    private String _EntityTermClass;
-    private String _DocumentDateTermClass;
-    private String _CapsTermClass;
-    private String _ExpressionTermClass;
-    private String _DateTermClass;
-    private String _MeasurementTermClass;
-    private String _NumericTermClass;
-    private String _RegularTermClass;
-    private String _PercentageTermClass;
-    private String _PriceTermClass;
-    private HashSet<String> stopWords;
-    private String _DocText;
-    private boolean toStem;
+    protected static Pattern commas = Pattern.compile("[\\,]");
+    protected static  HashSet<String> unitsOfMeasurement = new HashSet<>(Arrays.asList("meters", "meter", "kilometers", "kilometer", "km", "KM", "liter", "liters", "milliliters", "milliliter", "mile", "miles"));
+    protected TermBuilder termBuilder;
+    protected String _EntityTermClass;
+    protected String _DocumentDateTermClass;
+    protected String _CapsTermClass;
+    protected String _ExpressionTermClass;
+    protected String _DateTermClass;
+    protected String _MeasurementTermClass;
+    protected String _NumericTermClass;
+    protected String _RegularTermClass;
+    protected String _PercentageTermClass;
+    protected String _PriceTermClass;
+    protected HashSet<String> stopWords;
+    protected String _DocText;
+    protected boolean toStem;
 
     public Parse(HashSet<String> stopWords, boolean toStem) {
         this.termBuilder = new TermBuilder();
@@ -131,7 +131,7 @@ public class Parse {
      * @param terms the arraylist of terms
      */
     @SuppressWarnings("Duplicates")
-    private ArrayList<String> handlePunctuation(ArrayList<String> terms) {
+    protected ArrayList<String> handlePunctuation(ArrayList<String> terms) {
         if (terms.size() == 0) {
             return terms;
         }
@@ -186,7 +186,7 @@ public class Parse {
      * //     * @param text
      * //     * @return deletes all <*> </*> from the doc text
      */
-    private static String deleteTitlesFunc(String text) {
+    protected static String deleteTitlesFunc(String text) {
         StringBuilder buildNewText = new StringBuilder();
         String[] noTitles = deleteTitles.split(text);
         for (int i = 0; i < noTitles.length; i++) {
@@ -204,7 +204,7 @@ public class Parse {
      * @return updated terms list
      */
     @SuppressWarnings("Duplicates")
-    private ArrayList<String> handleHypen(ArrayList<String> terms) {
+    protected ArrayList<String> handleHypen(ArrayList<String> terms) {
         ArrayList<String> newTerms = new ArrayList<>();
         StringBuilder appender = new StringBuilder();
         for (int i = 0; i < terms.size(); i++) {
@@ -295,7 +295,7 @@ public class Parse {
         }
     }
 
-    private void addDateTermToList(HashMap<Term, TermDocPair> target, Document document, String month, String year) {
+    protected void addDateTermToList(HashMap<Term, TermDocPair> target, Document document, String month, String year) {
         StringBuilder finalDate;
         month = month.toLowerCase();
         month = eNumMonths.valueOf(month).toString();
@@ -308,8 +308,7 @@ public class Parse {
         target.put(dateTerm, pair);
     }
 
-    @SuppressWarnings("Duplicates")
-    private void parseTextToList(ArrayList<String> initialWords, HashMap<Term, TermDocPair> target, Document document, String termType) {
+    protected void parseTextToList(ArrayList<String> initialWords, HashMap<Term, TermDocPair> target, Document document, String termType) {
         for (int i = 0; i < initialWords.size(); i++) {
             boolean wasProccessed = false;
             String current = initialWords.get(i); //saving current word
@@ -460,7 +459,7 @@ public class Parse {
      * @param i
      * @return the 3 next strings of a term in the list (if existing)
      */
-    private String[] initFunToParse(ArrayList<String> initialWords, int i) {
+    protected String[] initFunToParse(ArrayList<String> initialWords, int i) {
         String next = "";
         String secondNext = "";
         String thirdNext = "";
@@ -477,11 +476,11 @@ public class Parse {
         return ans;
     }
 
-    private boolean isBetween(String current) {
+    protected boolean isBetween(String current) {
         return (current.equals("between") || current.equals("Between"));
     }
 
-    private boolean isExpression(String current) {
+    protected boolean isExpression(String current) {
         return hyphenControl.matcher(current).find();
     }
 
@@ -491,7 +490,7 @@ public class Parse {
      * @param toStem
      * @return string after stemming
      */
-    private String stemmStr(String toStem) {
+    protected String stemmStr(String toStem) {
         Stemmer stemm = new Stemmer();
         stemm.add(toStem.toCharArray(), toStem.length());
         stemm.stem();
@@ -507,7 +506,7 @@ public class Parse {
      * @param termType
      */
     @SuppressWarnings("Duplicates")
-    private void addExpressions(HashMap<Term, TermDocPair> pairs, String[] spliter, Document document, String termType) {
+    protected void addExpressions(HashMap<Term, TermDocPair> pairs, String[] spliter, Document document, String termType) {
         //handling cases of word-word, num-word, word-num, num-num, word-word-word
         String save;
         save = _ExpressionTermClass;
@@ -548,7 +547,7 @@ public class Parse {
      * @param termDocPair
      * @param pairs
      */
-    private void addToPairs(TermDocPair termDocPair, HashMap<Term, TermDocPair> pairs, String termType) {
+    protected void addToPairs(TermDocPair termDocPair, HashMap<Term, TermDocPair> pairs, String termType) {
         Term term = termDocPair.getTerm();
         if (pairs.containsKey(term)) {
             pairs.get(term).incrementCounter();//add to counter for existing pair
@@ -561,7 +560,7 @@ public class Parse {
      * @param current
      * @return true if the term start with capital letter, else false
      */
-    private boolean startsWithCapital(String current) {
+    protected boolean startsWithCapital(String current) {
         if (current.length() > 0 && current.charAt(0) >= 'A' && current.charAt(0) <= 'Z') {
             return true;
         }
@@ -578,7 +577,7 @@ public class Parse {
      * @return arrayList of entities
      */
     @SuppressWarnings("Duplicates")
-    private int handleCapitalLetterSequence(String current, int i, Document document, ArrayList<String> lWords, HashMap<Term, TermDocPair> target, String termType) {
+    protected int handleCapitalLetterSequence(String current, int i, Document document, ArrayList<String> lWords, HashMap<Term, TermDocPair> target, String termType) {
         StringBuilder appender = new StringBuilder();
         String next = current;
         int prog = i;
@@ -604,7 +603,7 @@ public class Parse {
      *
      * @return term with currect data
      */
-    private Term handleMesurment(String current, String next, String termType) {
+    protected Term handleMesurment(String current, String next, String termType) {
         String data = (current + " " + next);
         return termBuilder.buildTerm(_MeasurementTermClass, data);
     }
@@ -617,7 +616,7 @@ public class Parse {
      * @param currentNumeric
      * @return
      */
-    private boolean isMesurment(String current, String next, boolean currentNumeric) {
+    protected boolean isMesurment(String current, String next, boolean currentNumeric) {
         return (currentNumeric && unitsOfMeasurement.contains(next));
     }
 
@@ -627,7 +626,7 @@ public class Parse {
      * @param term
      * @return true if found and removed, else false
      */
-    private boolean tryRemoveDotZero(Term term) {
+    protected boolean tryRemoveDotZero(Term term) {
         if (dotZero.matcher(term.getData()).matches()) //if has unwanted ".0" inside
         {
             //build the new string
@@ -642,7 +641,7 @@ public class Parse {
      *
      * @return term with currect data
      */
-    private Term handleDate(String current, String next, boolean currentNumeric, boolean nextNumeric, String currentLower) {
+    protected Term handleDate(String current, String next, boolean currentNumeric, boolean nextNumeric, String currentLower) {
         String output = "";
 
         //month year
@@ -675,9 +674,26 @@ public class Parse {
      * @param nextNumeric
      * @return true if current word reprresents a date
      */
-    private boolean isDate(String current, String next, boolean currentNumeric, boolean nextNumeric) {
-        if (currentNumeric && (isMonth(next)) || (isMonth(current) && nextNumeric))
-            return true;
+    protected boolean isDate(String current, String next, boolean currentNumeric, boolean nextNumeric) {
+        if (currentNumeric) {
+            double temp = getNumericIgnoreCommas(current);
+            int currentNum = (int) temp;
+            if (temp == currentNum) {
+                if ((currentNum >= 1) && (currentNum <= 31) && (isMonth(next))) {
+                    return true;
+                }
+            }
+        }
+        else if (nextNumeric) {
+            double temp = getNumericIgnoreCommas(next);
+            int nextNum = (int) temp;
+            if (temp == nextNum) {
+                if (isMonth(current)) {
+                    if (((nextNum >= 1) && (nextNum <= 31)) || ((nextNum >= 1000) && (nextNum <= 2050)))
+                        return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -687,7 +703,7 @@ public class Parse {
      * @param str
      * @return
      */
-    private boolean isMonth(String str) {
+    protected boolean isMonth(String str) {
         if (monthsAndShortMonths.contains(str))
             return true;
         return false;
@@ -698,7 +714,7 @@ public class Parse {
      * @return updated list of terms that's not contained "" or terms without numbers or letters
      */
     @SuppressWarnings("Duplicates")
-    private static ArrayList deleteEmptyWords(ArrayList<String> terms) {
+    protected static ArrayList deleteEmptyWords(ArrayList<String> terms) {
         ArrayList<String> newList = new ArrayList<>();
         for (int i = 0; i < terms.size(); i++) {
             if (terms.get(i).length() > 0 && numOrChar.matcher(terms.get(i)).find()) {
@@ -713,7 +729,7 @@ public class Parse {
      *
      * @return term with currect data
      */
-    private Term handlePrice(String current, String next, String secondNext, String thirdNext, String termType, boolean currentNumeric, boolean nextNumeric) {
+    protected Term handlePrice(String current, String next, String secondNext, String thirdNext, String termType, boolean currentNumeric, boolean nextNumeric) {
         String outputToken = "";
         Double numDouble = null;
 
@@ -853,7 +869,7 @@ public class Parse {
      * @param currentNumeric
      * @return true if and only if current represents price
      */
-    private boolean isPrice(String current, String next, String secondNext, String thirdNext, boolean currentNumeric) {
+    protected boolean isPrice(String current, String next, String secondNext, String thirdNext, boolean currentNumeric) {
 
         //initialize substrings
         String substring2 = "";
@@ -879,7 +895,7 @@ public class Parse {
      * @param str
      * @return true if and only if the input is a fraction
      */
-    private boolean isFraction(String str) {
+    protected boolean isFraction(String str) {
         if (!str.contains("/")) //not a fraction
             return false;
         String[] fraction = slash.split(str);
@@ -898,7 +914,7 @@ public class Parse {
      * @param s
      * @return term with currect data
      */
-    private Term handlePercent(String s, String termType) {
+    protected Term handlePercent(String s, String termType) {
         if (s.endsWith("%"))
             return termBuilder.buildTerm(_PercentageTermClass, s);
         String data = s + "%";
@@ -914,8 +930,8 @@ public class Parse {
      * @param currentNumeric
      * @return
      */
-    private boolean isPercent(String strNum, String next, boolean currentNumeric) {
-        if (strNum.endsWith("%"))
+    protected boolean isPercent(String strNum, String next, boolean currentNumeric) {
+        if (strNum.endsWith("%") && (isNumericIgnoreCommas(strNum.substring(0, strNum.length() - 1))))
             return true;
         if ((next.equals("percent") || next.equals("percentage")) && currentNumeric)
             return true;
@@ -930,7 +946,7 @@ public class Parse {
      * @param nextToken token after the number, to check if it is part of the number
      * @return token for the number
      */
-    private Term handleNumber(double number, String nextToken) {
+    protected Term handleNumber(double number, String nextToken) {
         String outputToken = "";
         double correctedNumber = number;
 
@@ -1007,7 +1023,7 @@ public class Parse {
      * @param text
      * @return arrayList of separated words
      */
-    private ArrayList<String> splitBySpaceToArrayList(String text) {
+    protected ArrayList<String> splitBySpaceToArrayList(String text) {
         if (text == null)
             return null;
         ArrayList<String> splitedArrayList = new ArrayList<String>(Arrays.asList(splitSpaces.split(text)));
@@ -1018,7 +1034,7 @@ public class Parse {
      * @param strNum
      * @return true if and only if string is number, else false
      */
-    private boolean isNumericIgnoreCommas(String strNum) {
+    protected boolean isNumericIgnoreCommas(String strNum) {
         strNum = removeCommas(strNum);
         double d;
         try {
@@ -1034,7 +1050,7 @@ public class Parse {
      * @param strNum
      * @return string without the commas
      */
-    private String removeCommas(String strNum) {
+    protected String removeCommas(String strNum) {
         if (strNum == null)
             return null;
         String[] separated = commas.split(strNum);
@@ -1049,7 +1065,7 @@ public class Parse {
      * @param strNum numeric string (might be with commas, they are ignored)
      * @return numeric value of strNum
      */
-    private Double getNumericIgnoreCommas(String strNum) {
+    protected Double getNumericIgnoreCommas(String strNum) {
         String copyNoComma = removeCommas(strNum);
         Double d;
         try {
@@ -1065,7 +1081,7 @@ public class Parse {
      * @param places how many places after decimal point
      * @return rounded number as double (half up)
      */
-    private double round(double value, int places) {
+    protected double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
         BigDecimal bd = new BigDecimal(Double.toString(value));
         bd = bd.setScale(places, RoundingMode.HALF_UP);
