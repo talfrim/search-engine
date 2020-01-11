@@ -13,6 +13,7 @@ import TermsAndDocs.Terms.TermBuilder;
 import com.medallia.word2vec.Word2VecModel;
 import datamuse.DatamuseQuery;
 import datamuse.JSONParse;
+import javafx.util.Pair;
 
 import java.util.*;
 import java.io.File;
@@ -26,9 +27,11 @@ import java.util.regex.Pattern;
  */
 public class Searcher {
     private ArrayList<String> docsPath;
+    private static Pattern dfPattern = Pattern.compile("[d][f][\\{]");
     private static Pattern escape = Pattern.compile("[ ]");
     private static Pattern splitByEntities = Pattern.compile("[E][N][T][I][T][I][E][S][:]");
     private static Pattern splitByDotCom = Pattern.compile("[\\;]");
+    private static Pattern splitByBracket = Pattern.compile("[\\(]");
     private HashSet<String> stopWords;
 
     /**
@@ -65,13 +68,13 @@ public class Searcher {
         ArrayList<Term> semanticTerms = parseQueryAndHeader(semanticallyCloseWords);
 
         //finding the posting data for each term
-        HashMap<Term, String> queryTermPostingData = getPostHash(queryTerms);
-        HashMap<Term, String> semanticTermPostingData = getPostHash(semanticTerms);
+        ArrayList<Pair<Term, String>> queryTermPostingData = getPostData(queryTerms);
+        ArrayList<Pair<Term, String>> semanticTermPostingData = getPostData(semanticTerms);
 
         //TODO object DocNecessaryData
         //TODO extracting from hashes all the docNos
         //finding the doc file data for each term
-        HashMap<String, DocNecessaryData> docsFileData = getDocsHash(queryTermPostingData, semanticTermPostingData);
+        ArrayList<Pair<String, DocNecessaryData>> docsFileData = getDocsData(queryTermPostingData, semanticTermPostingData);
 
 
         return null;
@@ -83,8 +86,41 @@ public class Searcher {
      * @param semanticTermPostingData
      * @return
      */
-    private HashMap<String, DocNecessaryData> getDocsHash(HashMap<Term, String> queryTermPostingData, HashMap<Term, String> semanticTermPostingData) {
-        HashMap<String, DocNecessaryData> docsDataHash = new HashMap<>();
+    private ArrayList<Pair<String, DocNecessaryData>> getDocsData(ArrayList<Pair<Term, String>> queryTermPostingData,
+                                                          ArrayList<Pair<Term, String>> semanticTermPostingData) {
+        ArrayList<Pair<String, DocNecessaryData>> docsDataHash = new ArrayList<>();
+        HashMap<String, DocNecessaryData> hashChecker = new HashMap<>();
+        for (int p = 0; p < queryTermPostingData.size(); p++) {
+            Pair<Term, String> entry = queryTermPostingData.get(p);
+            String termPostingData = entry.getValue();
+            //finding term DF
+            String[] splitterDf = dfPattern.split(termPostingData);
+            String containsDF = splitterDf[1];
+            int i = 0;
+            char ch = containsDF.charAt(i);
+            String dfStr = "";
+            while (ch != '}'){
+                dfStr += ch;
+                i++;
+                ch = containsDF.charAt(i);
+            }
+            int termDf = Integer.parseInt(dfStr);
+
+            //extracting docNo && tf
+            String containsNotDf = splitterDf[0];
+            String[] splitterTfDocNo = splitByBracket.split(containsNotDf);
+            for(int k = 1; k < splitterTfDocNo.length; k++){
+                String docNoTfCurrent = splitterTfDocNo[k];
+                String[] splitter = splitByDotCom.split(docNoTfCurrent);
+                String currentDocNo = splitter[0];
+                if(hashChecker.get(currentDocNo) == null){
+
+                }
+                else {
+                }
+            }
+
+        }
 
         return docsDataHash;
     }
@@ -93,15 +129,15 @@ public class Searcher {
      * @param terms
      * @return hash of all the terms as keys and thier data in post file (String) as value
      */
-    private HashMap<Term, String> getPostHash(ArrayList<Term> terms) {
-        HashMap<Term, String> termPostingData = new HashMap<>();
+    private ArrayList<Pair<Term, String>> getPostData(ArrayList<Term> terms) {
+        ArrayList<Pair<Term, String>> termPostingData = new ArrayList<>();
         FindTermData finder = new FindTermData();
         for (Term currentTerm : terms){
             CountAndPointerDicValue dicVal = dictionary.get(currentTerm);
             if(dicVal != null){
                 String path = dicVal.getPointer().getFileStr();
                 String termLine = finder.findLine(path, currentTerm.getData());
-                termPostingData.put(currentTerm, termLine);
+                termPostingData.add(new Pair<>(currentTerm, termLine));
             }
         }
         return termPostingData;

@@ -86,9 +86,9 @@ public class Ranker {
         output = weightOfOriginalQuery* (weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
                 + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
                 +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs))
-                +(1-weightOfOriginalQuery)* (weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
-                + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
-                +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs));
+                +(1-weightOfOriginalQuery)* (weightOfBM25*getBM25Rank(similarWordsTfs,similarWordsDfs,lengthOfDoc)
+                + 0.05*getTermsInHeaderScore(similarWords,docHeaderStrings)
+                +(1-0.05-weightOfBM25)*getCosSimRank(similarWordsTfs,similarWordsDfs));
         return output;
     }
 
