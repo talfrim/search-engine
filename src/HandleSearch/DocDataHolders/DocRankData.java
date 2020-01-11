@@ -1,4 +1,4 @@
-package HandleSearch.DocDataHolder;
+package HandleSearch.DocDataHolders;
 
 import TermsAndDocs.Terms.Term;
 

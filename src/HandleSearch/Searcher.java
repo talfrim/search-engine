@@ -1,6 +1,6 @@
 package HandleSearch;
 
-import HandleSearch.DocDataHolder.DocRankData;
+import HandleSearch.DocDataHolders.DocRankData;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
