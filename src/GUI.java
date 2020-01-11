@@ -6,11 +6,8 @@ import OuputFiles.DictionaryFileHandler;
 import TermsAndDocs.TermCounterPair;
 import TermsAndDocs.Terms.Term;
 import javafx.application.Application;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -18,15 +15,16 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
-import javafx.stage.Modality;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 
+@SuppressWarnings("JoinDeclarationAndAssignmentJava")
 public class GUI extends Application implements EventHandler<ActionEvent> {
 
     Button startButton;
@@ -35,12 +33,22 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
     Button resetButton;
     Button viewDictionaryButton;
     Button loadDictionaryToMemoryButton;
+    //part 2
+    Button searchQueryFromTextButton;
+    Button queriesFileBrowseButton;
+    Button searchUsingFileButton;
+
 
     TextField inputPathTextField;
     TextField outputPathTextField;
+    //part 2
+    TextField singleQueryTextField;
+    TextField queriesFilePathTextFiled;
 
     DirectoryChooser inputPathChooser;
     DirectoryChooser outputPathChooser;
+    //part 2
+    FileChooser queriesFileChooser;
 
     CheckBox stemCheckBox;
 
@@ -49,7 +57,11 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     Dictionary dictionary;
 
+    //part 2
+    Separator separator1;
 
+
+    @SuppressWarnings({"JoinDeclarationAndAssignmentJava", "Duplicates"})
     @Override
     public void start(Stage primaryStage) throws Exception {
         //Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
@@ -59,14 +71,24 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         HBox extraButtonsHBox;
         HBox inputHBox;
         HBox outputHBox;
+        HBox singleQuerySearchHBox;
+        HBox searchFromFileHBox;
 
         //directory choosers
         inputPathChooser = new DirectoryChooser();
         outputPathChooser = new DirectoryChooser();
+        //part 2
+        queriesFileChooser = new FileChooser();
 
         //text fields
         inputPathTextField = new TextField();
         outputPathTextField = new TextField();
+        //part 2
+        singleQueryTextField = new TextField();
+        singleQueryTextField.setText("Insert your query here");
+        queriesFilePathTextFiled = new TextField();
+        queriesFilePathTextFiled.setText("Or choose a file...");
+
 
 
         //buttons
@@ -88,10 +110,25 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         viewDictionaryButton.setOnAction(this);
         loadDictionaryToMemoryButton = new Button("Load dictionary to memory");
         loadDictionaryToMemoryButton.setOnAction(this);
+        //part 2
+        searchQueryFromTextButton = new Button("RUN query");
+        searchQueryFromTextButton.setOnAction(this);
+        queriesFileBrowseButton = new Button("Browse queries file");
+        queriesFileBrowseButton.setOnAction(e -> {
+            File queriesFile = queriesFileChooser.showOpenDialog(primaryStage);
+            queriesFilePathTextFiled.setText(queriesFile.getAbsolutePath());
+        });
+        searchUsingFileButton = new Button("RUN on queries file");
+        searchUsingFileButton.setOnAction(this);
+
 
 
         //checkBox
         stemCheckBox = new CheckBox("Stemming");
+
+        //separator
+        separator1 = new Separator();
+
 
 
         //build scene
@@ -103,8 +140,14 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         mainVBox.getChildren().add(startButton);
         extraButtonsHBox = new HBox(resetButton, viewDictionaryButton, loadDictionaryToMemoryButton);
         mainVBox.getChildren().add(extraButtonsHBox);
+        mainVBox.getChildren().add(separator1);
+        singleQuerySearchHBox = new HBox(singleQueryTextField, searchQueryFromTextButton);
+        mainVBox.getChildren().add(singleQuerySearchHBox);
+        searchFromFileHBox = new HBox(queriesFilePathTextFiled,queriesFileBrowseButton,searchUsingFileButton);
+        mainVBox.getChildren().add(searchFromFileHBox);
+
         layout.getChildren().add(mainVBox);
-        primaryStage.setScene(new Scene(layout, 350, 120));
+        primaryStage.setScene(new Scene(layout, 385, 170));
         primaryStage.show();
     }
 
@@ -132,7 +175,35 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         if (event.getSource() == loadDictionaryToMemoryButton) {
             loadDictionaryToMemory(outputPath);
         }
+        //part 2
+        if (event.getSource() == searchQueryFromTextButton) {
+            if (singleQueryTextField.getText().equals("")||singleQueryTextField.getText().equals("Insert your query here"))
+                AlertBox.display("","Please write a query and try again!");
+            else
+                runSingleQuery(singleQueryTextField.getText());
+        }
+        if (event.getSource() == searchUsingFileButton) {
+            if (queriesFilePathTextFiled.getText().equals("") || queriesFilePathTextFiled.getText().equals("Or choose a file..."))
+                AlertBox.display("","Please choose file and try again!");
+            else
+                runQueriesFromFile(queriesFilePathTextFiled.getText());
+        }
+    }
 
+    private void runQueriesFromFile(String path) {
+        try {
+            ArrayList<String> queries = QueryFileReader.extractQueries(path);
+        }
+        catch (Exception e){
+        }
+    }
+
+    private void runSingleQuery(String query) {
+
+    }
+
+    private HashMap<String,String> getDocNoAndEntitiesResultsForQuery(String query) {
+        return null;
     }
 
     /**

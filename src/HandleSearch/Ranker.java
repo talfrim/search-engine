@@ -1,16 +1,8 @@
 package HandleSearch;
 
 import HandleParse.DataConfiguration.Stemmer;
-import TermsAndDocs.Docs.Document;
-import com.medallia.word2vec.Searcher;
-import com.medallia.word2vec.Word2VecModel;
-import datamuse.DatamuseQuery;
-import datamuse.JSONParse;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * This class is responsible for ranking documents with respect to a query
@@ -38,6 +30,12 @@ public class Ranker {
      */
     private final double weightOfOriginalQuery = 0.65;
 
+    /**
+     * The percentage given to the bm25 functions when scoring with the different parameters
+     * The reat goes to cos similarity, is the word in the header, etc...
+     */
+    private final double weightOfBM25 = 0.60;
+
 
     /**
      * k1 parameter for bm25
@@ -45,7 +43,7 @@ public class Ranker {
     private double k1 = 2;
 
     /**
-     * k1 parameter for bm25
+     * b parameter for bm25
      */
     private double b = 0.75;
 
@@ -57,10 +55,7 @@ public class Ranker {
     /**
      * This is the avg doc length
      */
-    public final int avgDocLength = 200; //TODO
-
-
-
+    public final int avgDocLength = 250; //TODO
 
     /**
      * @param isSemantic field mentioning if we should take into account the result of the semantic connection
@@ -79,13 +74,22 @@ public class Ranker {
     public double rankDocument(
             ArrayList<String> queryWords, ArrayList<Integer> queryWordsTfs, ArrayList<Integer> queryWordsDfs,
              ArrayList<String> similarWords, ArrayList<Integer> similarWordsTfs, ArrayList<Integer> similarWordsDfs,
-              int maxTf,  ArrayList<String> docHeaderStrings)
+              int lengthOfDoc,  ArrayList<String> docHeaderStrings)
     {
         double output;
         if (!isSemantic) {
-            output=0;
+            output = weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
+                    + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
+                    +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs);
         }
-        return 0;
+        else //with semantics
+        output = weightOfOriginalQuery* (weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
+                + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
+                +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs))
+                +(1-weightOfOriginalQuery)* (weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
+                + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
+                +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs));
+        return output;
     }
 
     private double getCosSimRank(ArrayList<Integer> tfs, ArrayList<Integer> dfs) {
@@ -139,6 +143,20 @@ public class Ranker {
             headerAfterStemming.add(stemmed);
         }
         return headerAfterStemming.contains(term) ? 1 : 0 ;
+    }
+
+    /**
+     * returns the percentage of the words from the query that are in the documents header
+     * @param terms
+     * @param docHeaderStrings
+     * @return the percentage of the words from the query that are in the documents header
+     */
+    private double getTermsInHeaderScore(ArrayList<String> terms,ArrayList<String> docHeaderStrings) {
+        int counter =0;
+        for (String term: terms) {
+            counter += isTermInHeader(term,docHeaderStrings); //this will give us the number of terms from the list which are in the header
+        }
+        return ((double) counter)/((double)terms.size());
     }
 
     /**

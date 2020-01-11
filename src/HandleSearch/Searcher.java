@@ -1,8 +1,6 @@
 package HandleSearch;
 
 import HandleParse.DataConfiguration.Stemmer;
-
-import HandleSearch.DocDataHolder.DocNecessaryData;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
@@ -15,8 +13,10 @@ import com.medallia.word2vec.Word2VecModel;
 import datamuse.DatamuseQuery;
 import datamuse.JSONParse;
 
-import java.io.*;
 import java.util.*;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -59,7 +59,6 @@ public class Searcher {
         ArrayList<String> semanticallyCloseWords = new ArrayList<>();
         if(isSemantic)
             semanticallyCloseWords = getSemanticallyCloseWords(query);
-
         //changing the words of the query and semantically close words so they would fit to the dictionary && posting file terms
         ArrayList<Term> queryTerms = parseQueryAndHeader(query);
         ArrayList<Term> semanticTerms = parseQueryAndHeader(semanticallyCloseWords);
@@ -317,7 +316,11 @@ public class Searcher {
         }
     }
 
-
+    /**
+     *
+     * @param toStem
+     * @return
+     */
     private String stemmStr(String toStem) {
         Stemmer stemm = new Stemmer();
         stemm.add(toStem.toCharArray(), toStem.length());
