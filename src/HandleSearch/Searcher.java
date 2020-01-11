@@ -1,6 +1,7 @@
 package HandleSearch;
 
 import HandleSearch.DocDataHolders.DocRankData;
+import HandleSearch.DocDataHolders.DocumentDataToView;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
@@ -26,6 +27,7 @@ import java.util.regex.Pattern;
  */
 public class Searcher {
     private ArrayList<String> docsPath;
+    private static Pattern stickPattern = Pattern.compile("[\\|]");
     private static Pattern dfPattern = Pattern.compile("[d][f][\\{]");
     private static Pattern escape = Pattern.compile("[ ]");
     private static Pattern splitByEntities = Pattern.compile("[E][N][T][I][T][I][E][S][:]");
@@ -34,10 +36,10 @@ public class Searcher {
     private HashSet<String> stopWords;
 
     /**
-     * * Field mentioning if we should take into account the result of the semantic connection
-     * * between the query and the document. Probably will be decided by the user.
-     * * If it is false, only original query words will be taken into account.
-     * */
+     * Field mentioning if we should take into account the result of the semantic connection
+     * between the query and the document. Probably will be decided by the user.
+     * If it is false, only original query words will be taken into account.
+     */
     private boolean isSemantic;
     private boolean isStemm;
     private Dictionary dictionary;
@@ -59,7 +61,7 @@ public class Searcher {
      * @param query
      * @return
      */
-    public ArrayList<String> search(String query){
+    public ArrayList<DocumentDataToView> search(String query, boolean withEntities){
         ArrayList<String> queryL = splitBySpaceToArrayList(query);
         ArrayList<String> semanticallyCloseWords = new ArrayList<>();
         if(isSemantic)
@@ -77,9 +79,54 @@ public class Searcher {
         getDocsData(queryTermPostingData, hashChecker, 0);
         getDocsData(semanticTermPostingData, hashChecker, 1);
 
+        //ranking every relevant doc
+        ArrayList<Pair<String, Double>> keepScores = new ArrayList<>();
         Ranker ranker = new Ranker(this.isSemantic);
+        for (Map.Entry<String, DocRankData> entry : hashChecker.entrySet()){
+            //double score = ranker.rankDocument(entry.getValue());
+            double score = 0;
+            keepScores.add(new Pair<>(entry.getKey(), score));
+        }
+        Collections.sort(keepScores, new Comparator<Pair<String, Double>>() {
+            @Override
+            public int compare(Pair<String, Double> o1, Pair<String, Double> o2) {
+                return o1.getValue().compareTo(o2.getValue());
+            }
+        });
 
-        return null;
+        //keeping only the docNo and date of the best 50 docs
+        ArrayList<DocumentDataToView> goodResults = new ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            goodResults.add(new DocumentDataToView(keepScores.get(i).getKey()));
+            String currentDocNo = goodResults.get(i).getDocNo();
+            String currentDocDate = hashChecker.get(currentDocNo).getDocDate();
+            goodResults.get(i).setDate(currentDocDate);
+        }
+
+        //adding top 5 entities for the user to view
+        if(withEntities) {
+            for (int i = 0; i < goodResults.size(); i++) {
+                ArrayList<Term> entities = fiveTopEntities(goodResults.get(i).getDocNo());
+                String strEntities = makeEntitiesString(entities);
+                goodResults.get(i).setEntities(strEntities);
+            }
+        }
+
+        return goodResults;
+    }
+
+    /**
+     * @param entities
+     * @return all the entities in one string
+     */
+    private String makeEntitiesString(ArrayList<Term> entities) {
+        String ans = "";
+        for(Term t : entities){
+            ans += t.getData() + ", ";
+        }
+        if (entities.size() > 0)
+            ans = ans.substring(0, ans.length() - 2);
+        return ans;
     }
 
     /**
@@ -238,7 +285,7 @@ public class Searcher {
         ArrayList<Term> queryTerms = new ArrayList<>();
         for (Map.Entry<Term, TermDocPair> entry : hash.entrySet()) {
             for (int i = 0; i < entry.getValue().getCounter(); i++) {
-            queryTerms.add(entry.getKey());
+                queryTerms.add(entry.getKey());
             }
         }
         return queryTerms;
@@ -327,24 +374,33 @@ public class Searcher {
         if (splitter.length == 1)
             return new ArrayList<>();
         String strEntities = splitter[1];
-        String[] mayEntities = splitByDotCom.split(strEntities);
+        String[] mayEntitiesWithCount = splitByDotCom.split(strEntities);
         TermBuilder builder = new TermBuilder();
-        ArrayList<Term> realEntities = new ArrayList<>();
+
+        HashMap<Term, Integer> realEntities = new HashMap<>();
+        ArrayList<Term> topFive = new ArrayList<>();
+
+        HashMap<String, Integer> mayEntries = new HashMap<>();
+        for(int i = 0; i < mayEntitiesWithCount.length; i++){
+            String currentUnited = mayEntitiesWithCount[i];
+            String[] splited = stickPattern.split(currentUnited);
+            int apperancesInDoc = Integer.parseInt(splited[1]);
+            mayEntries.put(splited[0], apperancesInDoc);
+        }
+
         //keeping only the right entities
-        for (int i = 0; i < mayEntities.length; i++) {
-            Term t = builder.buildTerm("EntityTerm", mayEntities[i]);
-            if (dictionary.contains(t))
-                realEntities.add(t);
+        for (Map.Entry<String, Integer> entry : mayEntries.entrySet()) {
+            Term t = builder.buildTerm("EntityTerm", entry.getKey());
+            if (dictionary.contains(t)) {
+                realEntities.put(t, entry.getValue());
+                topFive.add(t);
+            }
         }
         if (realEntities.size() <= 5) {
-            return realEntities;
-        } else {
-            ArrayList<Double> scores = calculateScores(realEntities, docNo);
-            ArrayList<Term> topFive = new ArrayList<>();
-            for (int i = 0; i <= 4; i++) {
-                topFive.add(extractBiggestScore(scores, realEntities));
-            }
             return topFive;
+        } else {
+            ArrayList<Pair<Term,Double>> scores = calculateScores(realEntities, docNo);
+            return extractBiggestScore(scores);
         }
     }
 
@@ -356,76 +412,44 @@ public class Searcher {
      * @param docNo
      * @return array list of scores for each entity
      */
-    private ArrayList<Double> calculateScores(ArrayList<Term> realEntities, String docNo) {
+    private ArrayList<Pair<Term, Double>> calculateScores(HashMap<Term, Integer> realEntities, String docNo) {
         Pattern docNoSplit = Pattern.compile(docNo + ";");
-        ArrayList<Double> scores = new ArrayList<>();
-        for (int i = 0; i < realEntities.size(); i++) {
-            Term currentEntity = realEntities.get(i);
+        ArrayList<Pair<Term,Double>> scores = new ArrayList<>();
+        for (Map.Entry<Term, Integer> entry : realEntities.entrySet()) {
+            Term currentEntity = entry.getKey();
             String[] strEntitySize = escape.split(currentEntity.getData());
 
             int entitySize = strEntitySize.length;
-            int appearancesInDoc = getNumOfAppearancesInDoc(dictionary, currentEntity, docNoSplit);
+            int appearancesInDoc = entry.getValue();
             int appearancesInCorpus = dictionary.get(currentEntity).getTotalCount();
 
             //calculating by formula
             double score = entitySize * appearancesInDoc;
             score = score / Math.log(appearancesInCorpus);
-            scores.add(score);
+            scores.add(new Pair<>(currentEntity, score));
 
         }
         return scores;
     }
 
-
-    /**
-     * this method is responsible for returning the number of appearances given term made in a given doc
-     * by getting the answer from the posting file
-     * @param dictionary
-     * @param entity
-     * @param docNoSplit
-     * @return
-     */
-    private int getNumOfAppearancesInDoc(Dictionary dictionary, Term entity, Pattern docNoSplit) {
-        String path = dictionary.get(entity).getPointer().getFileStr();
-        //finding the line of properties of the doc in posting file
-        FindTermData finder = new FindTermData();
-        String entitryLine = finder.findLine(path, entity.getData());
-
-        //getting from the line the number of appearances the term made inside the doc
-        String[] splitter = docNoSplit.split(entitryLine);
-        String contains = splitter[1];
-        String strApperances = "";
-        int i = 0;
-        char ch = contains.charAt(0);
-        while (ch != ')') {
-            strApperances += ch;
-            i++;
-            ch = contains.charAt(i);
-        }
-        int countApperances = Integer.parseInt(strApperances);
-
-        return countApperances;
-    }
-
-
     /**
      * this method is responsible for extracting and returning
      * the biggest score of term from the scores and realEntities arrays
      * @param scores
-     * @param realEntities
      * @return term with the biggest score
      */
-    private Term extractBiggestScore(ArrayList<Double> scores, ArrayList<Term> realEntities) {
-        double maxScore = 0;
-        int index = 0;
-        for (int i = 0; i < scores.size(); i++) {
-            if (scores.get(i) > maxScore) {
-                maxScore = scores.get(i);
-                index = i;
+    private ArrayList<Term> extractBiggestScore(ArrayList<Pair<Term, Double>> scores) {
+        Collections.sort(scores, new Comparator<Pair<Term, Double>>() {
+            @Override
+            public int compare(Pair<Term, Double> o1, Pair<Term, Double> o2) {
+                return o1.getValue().compareTo(o2.getValue());
             }
+        });
+        ArrayList<Term> ans = new ArrayList<>();
+        for (int i = 0; i <= 4; i++) {
+            ans.add(scores.get(i).getKey());
         }
-        scores.remove(index);
-        return realEntities.remove(index);
+        return ans;
     }
 
 

@@ -5,9 +5,15 @@ public class DocumentDataToView {
     String date;
     String entities;
 
-    public DocumentDataToView(String docNo, String date, String entities) {
+    public DocumentDataToView(String docNo){
         this.docNo = docNo;
+    }
+
+    public void setDate(String date) {
         this.date = date;
+    }
+
+    public void setEntities(String entities) {
         this.entities = entities;
     }
 
