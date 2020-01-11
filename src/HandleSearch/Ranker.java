@@ -1,6 +1,7 @@
 package HandleSearch;
 
-import HandleParse.DataConfiguration.Stemmer;
+import HandleSearch.DocDataHolders.DocRankData;
+import TermsAndDocs.Terms.Term;
 
 import java.util.ArrayList;
 
@@ -65,23 +66,21 @@ public class Ranker {
      * @return ranking
      */
     public double rankDocument(
-            ArrayList<String> queryWords, ArrayList<Integer> queryWordsTfs, ArrayList<Integer> queryWordsDfs,
-             ArrayList<String> similarWords, ArrayList<Integer> similarWordsTfs, ArrayList<Integer> similarWordsDfs,
-              int lengthOfDoc,  ArrayList<String> docHeaderStrings)
+            DocRankData docRankData)
     {
         double output;
         if (!isSemantic) {
-            output = weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
-                    + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
-                    +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs);
+            output = weightOfBM25*getBM25Rank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs(),docRankData.getLengthOfDoc())
+                    + 0.05*getTermsInHeaderScore(docRankData.getQueryWords(),docRankData.getDocHeaderStrings())
+                    +(1-0.05-weightOfBM25)*getCosSimRank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs());
         }
         else //with semantics
-        output = weightOfOriginalQuery* (weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
-                + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
-                +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs))
-                +(1-weightOfOriginalQuery)* (weightOfBM25*getBM25Rank(similarWordsTfs,similarWordsDfs,lengthOfDoc)
-                + 0.05*getTermsInHeaderScore(similarWords,docHeaderStrings)
-                +(1-0.05-weightOfBM25)*getCosSimRank(similarWordsTfs,similarWordsDfs));
+        output = weightOfOriginalQuery* (weightOfBM25*getBM25Rank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs(),docRankData.getLengthOfDoc())
+                + 0.05*getTermsInHeaderScore(docRankData.getQueryWords(),docRankData.getDocHeaderStrings())
+                +(1-0.05-weightOfBM25)*getCosSimRank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs()))
+                +(1-weightOfOriginalQuery)* (weightOfBM25*getBM25Rank(docRankData.getSimilarWordsTfs(),docRankData.getSimilarWordsDfs(),docRankData.getLengthOfDoc())
+                + 0.05*getTermsInHeaderScore(docRankData.getSimilarWords(),docRankData.getDocHeaderStrings())
+                +(1-0.05-weightOfBM25)*getCosSimRank(docRankData.getSimilarWordsTfs(),docRankData.getSimilarWordsDfs()));
         return output;
     }
 
@@ -128,7 +127,7 @@ public class Ranker {
      * @param docHeaderStrings
      * @return 1 if header contains un-stemmed version of the term supllied, else false
      */
-    private int isTermInHeader(String term, ArrayList<String> docHeaderStrings) {
+    private int isTermInHeader(Term term, ArrayList<Term> docHeaderStrings) {
         return docHeaderStrings.contains(term) ? 1 : 0 ;
     }
 
@@ -138,9 +137,9 @@ public class Ranker {
      * @param docHeaderStrings
      * @return the percentage of the words from the query that are in the documents header
      */
-    private double getTermsInHeaderScore(ArrayList<String> terms,ArrayList<String> docHeaderStrings) {
+    private double getTermsInHeaderScore(ArrayList<Term> terms, ArrayList<Term> docHeaderStrings) {
         int counter =0;
-        for (String term: terms) {
+        for (Term term: terms) {
             counter += isTermInHeader(term,docHeaderStrings); //this will give us the number of terms from the list which are in the header
         }
         return ((double) counter)/((double)terms.size());

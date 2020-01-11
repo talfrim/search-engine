@@ -107,6 +107,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
         //buttons
         startButton = new Button("Start pre-processing");
+        startButton.setMinHeight(50);
         startButton.setOnAction(this);
         inputPathBrowseButton = new Button("Browse input directory");
         inputPathBrowseButton.setOnAction(e -> {
