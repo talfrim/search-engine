@@ -1,6 +1,5 @@
 package HandleSearch;
 
-import HandleParse.DataConfiguration.Stemmer;
 import HandleSearch.DocDataHolder.DocRankData;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
