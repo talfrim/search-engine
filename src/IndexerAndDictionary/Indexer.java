@@ -46,7 +46,7 @@ public class Indexer {
 
             DocumentDateTerm documentDateTerm = new DocumentDateTerm("");
 
-            HashSet<Term> docEntities = new HashSet<>();
+            HashMap<Term, Integer> docEntities = new HashMap<>();
 
             int docSize = 0;
 
@@ -125,10 +125,10 @@ public class Indexer {
      * @param docEntities
      * @return update current term
      */
-    private Term updatingDictionary(Term currentTerm, int currentPairCounter, HashSet<Term> docEntities) {
+    private Term updatingDictionary(Term currentTerm, int currentPairCounter, HashMap<Term, Integer> docEntities) {
         //handles entity terms
         if (currentTerm instanceof EntityTerm) {
-            docEntities.add(currentTerm);
+            docEntities.put(currentTerm, currentPairCounter);
             if (dictionary.contains(currentTerm)) {
                 ((EntityTerm) currentTerm).setToEntity();
                 dictionary.add(currentTerm,currentPairCounter);
