@@ -65,8 +65,7 @@ public class Ranker {
      * original query, and if {@code isSemantic} is true with the semantic close words also.
      * @return ranking
      */
-    public double rankDocument(
-            DocRankData docRankData)
+    public double rankDocument(DocRankData docRankData)
     {
         double output;
         if (!isSemantic) {
@@ -92,9 +91,8 @@ public class Ranker {
 
         double[] docVector = new double[tfs.size()];
         for (int i=0; i<docVector.length; i++) {
-            queryVector[i] = tfs.get(i) * getIdf(dfs.get(i));
+            docVector[i] = tfs.get(i) * getIdf(dfs.get(i));
         }
-
         return cosineSimilarity(queryVector,docVector);
     }
 
@@ -107,7 +105,8 @@ public class Ranker {
             normA += Math.pow(vectorA[i], 2);
             normB += Math.pow(vectorB[i], 2);
         }
-        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        double scoreCOS = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        return scoreCOS;
     }
 
     private double getBM25Rank(ArrayList<Integer> tfs, ArrayList<Integer> dfs, int lengthOfDoc) {

@@ -238,8 +238,8 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
             }
         }
         Searcher searcher = new Searcher(generateDocsFiles(), similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
-        //ArrayList<DocumentDataToView> answer = searcher.search(query,entities);
-        //showResults(answer);
+        ArrayList<DocumentDataToView> answer = searcher.search(query,entities);
+        showResults(answer);
         if (writeToFile) {
 
         }

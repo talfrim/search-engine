@@ -35,8 +35,8 @@ public interface HandleDoc {
         String secWantedStr = wantedStr.substring(0,1) + "/" + wantedStr.substring(1);
         while (!listLines[lineIndex].contains(secWantedStr))
         {
-            helper += " " +listLines[lineIndex];
             lineIndex++;
+            helper += " " +listLines[lineIndex];
         }
         helper = helper.replace(wantedStr, "");
         helper = helper.replace(secWantedStr,"");

@@ -74,29 +74,32 @@ public class Searcher {
         ArrayList<Pair<Term, String>> queryTermPostingData = getPostData(queryTerms);
         ArrayList<Pair<Term, String>> semanticTermPostingData = getPostData(semanticTerms);
 
+        long start = System.currentTimeMillis();
         //keeping all of the doc's relevant data for the ranker calculation
         HashMap<String, DocRankData> hashChecker = new HashMap<>();
         getDocsData(queryTermPostingData, hashChecker, 0);
         getDocsData(semanticTermPostingData, hashChecker, 1);
+        long end = System.currentTimeMillis();
+        System.out.println(end-start);
 
         //ranking every relevant doc
         ArrayList<Pair<String, Double>> keepScores = new ArrayList<>();
         Ranker ranker = new Ranker(this.isSemantic);
         for (Map.Entry<String, DocRankData> entry : hashChecker.entrySet()){
-            //double score = ranker.rankDocument(entry.getValue());
-            double score = 0;
+            double score = ranker.rankDocument(entry.getValue());
+            System.out.println(score);
             keepScores.add(new Pair<>(entry.getKey(), score));
         }
         Collections.sort(keepScores, new Comparator<Pair<String, Double>>() {
             @Override
             public int compare(Pair<String, Double> o1, Pair<String, Double> o2) {
-                return o1.getValue().compareTo(o2.getValue());
+                return o2.getValue().compareTo(o1.getValue());
             }
         });
 
         //keeping only the docNo and date of the best 50 docs
         ArrayList<DocumentDataToView> goodResults = new ArrayList<>();
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; (i < 50) && (i < keepScores.size()) ; i++) {
             goodResults.add(new DocumentDataToView(keepScores.get(i).getKey()));
             String currentDocNo = goodResults.get(i).getDocNo();
             String currentDocDate = hashChecker.get(currentDocNo).getDocDate();
@@ -154,13 +157,14 @@ public class Searcher {
                 String currentDocNo = docNoTfCurrent[0];
                 int termTf = Integer.parseInt(docNoTfCurrent[1]);
 
-                //reading doc's line of data from the doc's file
-                DocumentFileHandler dfh = new DocumentFileHandler();
-                String docData = dfh.searchDocInFiles(currentDocNo, this.docsPath);
-                String[] splitterData = splitByDotCom.split(docData);
                 //if it's the first time we get that doc we need to create instance of DocNecessaryData the keeps that doc data
                 DocRankData currentDocData = hashChecker.get(currentDocNo);
                 if(currentDocData == null){
+                    //reading doc's line of data from the doc's file
+                    DocumentFileHandler dfh = new DocumentFileHandler();
+                    String docData = dfh.searchDocInFiles(currentDocNo, this.docsPath);
+                    String[] splitterData = splitByDotCom.split(docData);
+                    //initializing doc's fields
                     currentDocData = new DocRankData(currentDocNo);
                     initializeDocNecessaryData(currentDocData, splitterData);
                     hashChecker.put(currentDocNo, currentDocData);
@@ -210,19 +214,17 @@ public class Searcher {
      */
     private ArrayList<Object> findDf(String termPostingData) {
         //finding term DF
-        String[] splitterDf = dfPattern.split(termPostingData);
-        String containsDF = splitterDf[1];
-        int i = 0;
-        char ch = containsDF.charAt(i);
+        int i = termPostingData.length() - 2;
+        char ch = termPostingData.charAt(i);
         String dfStr = "";
-        while (ch != '}'){
-            dfStr += ch;
-            i++;
-            ch = containsDF.charAt(i);
+        while (ch != '{'){
+            dfStr = ch + dfStr;
+            i--;
+            ch = termPostingData.charAt(i);
         }
         ArrayList<Object> ans = new ArrayList<>();
         ans.add(Integer.parseInt(dfStr));
-        ans.add(splitterDf[0]);
+        ans.add(termPostingData.substring(0, i - 3));
         return ans;
     }
 
@@ -442,7 +444,7 @@ public class Searcher {
         Collections.sort(scores, new Comparator<Pair<Term, Double>>() {
             @Override
             public int compare(Pair<Term, Double> o1, Pair<Term, Double> o2) {
-                return o1.getValue().compareTo(o2.getValue());
+                return o2.getValue().compareTo(o1.getValue());
             }
         });
         ArrayList<Term> ans = new ArrayList<>();
