@@ -240,7 +240,7 @@ public class Searcher {
         ArrayList<Term> queryTerms = new ArrayList<>();
         for (Map.Entry<Term, TermDocPair> entry : hash.entrySet()) {
             for (int i = 0; i < entry.getValue().getCounter(); i++) {
-            queryTerms.add(entry.getKey());
+                queryTerms.add(entry.getKey());
             }
         }
         return queryTerms;

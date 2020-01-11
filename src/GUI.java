@@ -1,8 +1,10 @@
 import HandleParse.Parse;
+import HandleSearch.Searcher;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
 import OuputFiles.DictionaryFileHandler;
+import HandleSearch.DocDataHolders.DocumentDataToView;
 import TermsAndDocs.TermCounterPair;
 import TermsAndDocs.Terms.Term;
 import javafx.application.Application;
@@ -21,10 +23,10 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 
-@SuppressWarnings("JoinDeclarationAndAssignmentJava")
 public class GUI extends Application implements EventHandler<ActionEvent> {
 
     Button startButton;
@@ -37,6 +39,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
     Button searchQueryFromTextButton;
     Button queriesFileBrowseButton;
     Button searchUsingFileButton;
+    Button resultsFilePathBrowseButton;
 
 
     TextField inputPathTextField;
@@ -44,13 +47,21 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
     //part 2
     TextField singleQueryTextField;
     TextField queriesFilePathTextFiled;
+    TextField resultFileTextField;
 
     DirectoryChooser inputPathChooser;
     DirectoryChooser outputPathChooser;
     //part 2
     FileChooser queriesFileChooser;
+    DirectoryChooser resultsFilePathChooser;
 
     CheckBox stemCheckBox;
+    //part 2
+    CheckBox semanticallySimilarCheckBox;
+    CheckBox showEntitiesCheckBox;
+    CheckBox showDateCheckBox;
+    CheckBox writeResultsToFileCheckBox;
+
 
     String inputPath;
     String outputPath;
@@ -65,7 +76,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
     @Override
     public void start(Stage primaryStage) throws Exception {
         //Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        primaryStage.setTitle("Search Engine - Part A");
+        primaryStage.setTitle("Search Engine");
         StackPane layout = new StackPane();
         VBox mainVBox = new VBox();
         HBox extraButtonsHBox;
@@ -73,12 +84,15 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         HBox outputHBox;
         HBox singleQuerySearchHBox;
         HBox searchFromFileHBox;
+        HBox resultFileHBox;
+        HBox resultTableExtrasHBox;
 
         //directory choosers
         inputPathChooser = new DirectoryChooser();
         outputPathChooser = new DirectoryChooser();
         //part 2
         queriesFileChooser = new FileChooser();
+        resultsFilePathChooser = new DirectoryChooser();
 
         //text fields
         inputPathTextField = new TextField();
@@ -88,11 +102,11 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         singleQueryTextField.setText("Insert your query here");
         queriesFilePathTextFiled = new TextField();
         queriesFilePathTextFiled.setText("Or choose a file...");
-
+        resultFileTextField = new TextField();
 
 
         //buttons
-        startButton = new Button("Start");
+        startButton = new Button("Start pre-processing");
         startButton.setOnAction(this);
         inputPathBrowseButton = new Button("Browse input directory");
         inputPathBrowseButton.setOnAction(e -> {
@@ -120,15 +134,22 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         });
         searchUsingFileButton = new Button("RUN on queries file");
         searchUsingFileButton.setOnAction(this);
-
+        resultsFilePathBrowseButton = new Button("Browse result file");
+        resultsFilePathBrowseButton.setOnAction(e -> {
+            File resultsPath = resultsFilePathChooser.showDialog(primaryStage);
+            resultFileTextField.setText(resultsPath.getAbsolutePath());
+        });
 
 
         //checkBox
         stemCheckBox = new CheckBox("Stemming");
+        semanticallySimilarCheckBox = new CheckBox("Include sematically similar words");
+        showEntitiesCheckBox = new CheckBox("Show top entities for results");
+        showDateCheckBox = new CheckBox("Show document dates");
+        writeResultsToFileCheckBox = new CheckBox("Write to result file");
 
         //separator
         separator1 = new Separator();
-
 
 
         //build scene
@@ -140,19 +161,27 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         mainVBox.getChildren().add(startButton);
         extraButtonsHBox = new HBox(resetButton, viewDictionaryButton, loadDictionaryToMemoryButton);
         mainVBox.getChildren().add(extraButtonsHBox);
+        //part 2
         mainVBox.getChildren().add(separator1);
+        mainVBox.getChildren().add(semanticallySimilarCheckBox);
+        resultTableExtrasHBox = new HBox(showEntitiesCheckBox, showDateCheckBox);
+        resultTableExtrasHBox.setSpacing(15);
+        mainVBox.getChildren().add(resultTableExtrasHBox);
+        resultFileHBox = new HBox(resultFileTextField, resultsFilePathBrowseButton, writeResultsToFileCheckBox);
+        mainVBox.getChildren().add(resultFileHBox);
         singleQuerySearchHBox = new HBox(singleQueryTextField, searchQueryFromTextButton);
         mainVBox.getChildren().add(singleQuerySearchHBox);
-        searchFromFileHBox = new HBox(queriesFilePathTextFiled,queriesFileBrowseButton,searchUsingFileButton);
+        searchFromFileHBox = new HBox(queriesFilePathTextFiled, queriesFileBrowseButton, searchUsingFileButton);
         mainVBox.getChildren().add(searchFromFileHBox);
-
+        mainVBox.setSpacing(4);
         layout.getChildren().add(mainVBox);
-        primaryStage.setScene(new Scene(layout, 385, 170));
+        primaryStage.setScene(new Scene(layout, 385, 325));
         primaryStage.show();
     }
 
     /**
      * handles events in the gui
+     *
      * @param event
      */
     @Override
@@ -177,105 +206,140 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         }
         //part 2
         if (event.getSource() == searchQueryFromTextButton) {
-            if (singleQueryTextField.getText().equals("")||singleQueryTextField.getText().equals("Insert your query here"))
-                AlertBox.display("","Please write a query and try again!");
+            if (singleQueryTextField.getText().equals("") || singleQueryTextField.getText().equals("Insert your query here"))
+                AlertBox.display("", "Please write a query and try again!");
             else
-                runSingleQuery(singleQueryTextField.getText());
+                runSingleQuery(singleQueryTextField.getText(), semanticallySimilarCheckBox.isSelected());
         }
         if (event.getSource() == searchUsingFileButton) {
             if (queriesFilePathTextFiled.getText().equals("") || queriesFilePathTextFiled.getText().equals("Or choose a file..."))
-                AlertBox.display("","Please choose file and try again!");
+                AlertBox.display("", "Please choose file and try again!");
             else
-                runQueriesFromFile(queriesFilePathTextFiled.getText());
+                runQueriesFromFile(queriesFilePathTextFiled.getText(), semanticallySimilarCheckBox.isSelected());
         }
     }
 
-    private void runQueriesFromFile(String path) {
+    private void runQueriesFromFile(String path, boolean similarWords) {
         try {
-            ArrayList<String> queries = QueryFileReader.extractQueries(path);
+            ArrayList<String> queries = QueryFileUtil.extractQueries(path);
+        } catch (Exception e) {
         }
-        catch (Exception e){
-        }
     }
 
-    private void runSingleQuery(String query) {
-
-    }
-
-    private HashMap<String,String> getDocNoAndEntitiesResultsForQuery(String query) {
-        return null;
-    }
-
-    /**
-     * loads doctionary from outputPath, according to stemming box
-     * @param outputPath
-     */
-    private void loadDictionaryToMemory(String outputPath) {
-        boolean isWithStemming = stemCheckBox.isSelected();
-        DictionaryFileHandler dfh = new DictionaryFileHandler(new Dictionary());
-        this.dictionary = dfh.readFromFile(outputPath, isWithStemming);
-        System.out.println("loaded");
-    }
-
-    /**
-     * showing sirted dictionary
-     */
-    private void showSortedDictionary() {
-        Stage stage = new Stage();
-        TableView tableView = new TableView();
-        TableColumn<String, TermCounterPair> termCol = new TableColumn("Term");
-        termCol.setCellValueFactory(new PropertyValueFactory<>("termStr"));
-        TableColumn<Integer, TermCounterPair> countCol= new TableColumn("Count");
-        countCol.setCellValueFactory(new PropertyValueFactory<>("count"));
-
-        tableView.getColumns().add(termCol);
-        tableView.getColumns().add(countCol);
-
-        for (Map.Entry<Term, CountAndPointerDicValue> entry : dictionary.dictionaryTable.entrySet())
+    private void runSingleQuery(String query, boolean similarWords) {
+        boolean writeToFile=writeResultsToFileCheckBox.isSelected();
+        if (dictionary == null)
+            loadDictionaryToMemory(outputPath);
+        Searcher searcher = new Searcher(generateDocsFiles(), similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
+        //ArrayList<DocumentDataToView> answer = searcher.search(query);
+        if (writeToFile)
         {
-            tableView.getItems().add(new TermCounterPair(entry.getKey().getData(),entry.getValue().getTotalCount()));
+
+        }
+    }
+
+    private HashSet<String> generateStopWords() {
+        return ProgramStarter.readStopWords(inputPath + "\\05 stop_words");
+    }
+
+    private ArrayList<String> generateDocsFiles() {
+        ArrayList<String> output = new ArrayList<>();
+        String stemRelatedFolder = getStemRelatedFolderForDocFiles(stemCheckBox.isSelected());
+
+        for (int i = 0; i < 6; i++) {
+            String docFilePath = outputPath + "\\" + stemRelatedFolder + "\\DocsFiles\\docFile" + i;
+            output.add(docFilePath);
+        }
+        return output;
+    }
+
+    private String getStemRelatedFolderForDocFiles(boolean selected) {
+        if (selected)
+            return "stemOur";
+        return "noStemOur";
+    }
+
+    private DocumentDataToView getDocDataToViewForQuery (String query,boolean similarWords){
+            HashMap<String, String> h;
+            return null;
+        }
+
+        /**
+         * loads doctionary from outputPath, according to stemming box
+         * @param outputPath
+         */
+        private void loadDictionaryToMemory (String outputPath){
+            boolean isWithStemming = stemCheckBox.isSelected();
+            DictionaryFileHandler dfh = new DictionaryFileHandler(new Dictionary());
+            this.dictionary = dfh.readFromFile(outputPath, isWithStemming);
+            System.out.println("loaded");
+        }
+
+        /**
+         * showing sorted dictionary
+         */
+        private void showSortedDictionary () {
+            Stage stage = new Stage();
+            TableView tableView = new TableView();
+            TableColumn<String, TermCounterPair> termCol = new TableColumn("Term");
+            termCol.setCellValueFactory(new PropertyValueFactory<>("termStr"));
+            TableColumn<Integer, TermCounterPair> countCol = new TableColumn("Count");
+            countCol.setCellValueFactory(new PropertyValueFactory<>("count"));
+
+            tableView.getColumns().add(termCol);
+            tableView.getColumns().add(countCol);
+
+            for (Map.Entry<Term, CountAndPointerDicValue> entry : dictionary.dictionaryTable.entrySet()) {
+                tableView.getItems().add(new TermCounterPair(entry.getKey().getData(), entry.getValue().getTotalCount()));
+            }
+
+
+            VBox vbox = new VBox(tableView);
+            Scene scene = new Scene(vbox);
+            stage.setScene(scene);
+            stage.show();
         }
 
 
-
-
-        VBox vbox = new VBox(tableView);
-        Scene scene = new Scene(vbox);
-        stage.setScene(scene);
-        stage.show();
-    }
-
-
-    /**
-     * delete info from dictionary
-     *
-     * @param outputPath
-     */
-    private void reset(String outputPath) {
-        File index = new File(outputPath);
-        String[] entries = index.list();
-        for (String s : entries) {
-            File currentFile = new File(index.getPath(), s);
-            currentFile.delete();
+        /**
+         * delete info from dictionary if files exists
+         * @param outputPath
+         */
+        private void reset (String outputPath){
+            File index = new File(outputPath);
+            String[] entries = index.list();
+            if (entries == null) {
+                AlertBox.display("", "Nothing to delete!");
+                return;
+            }
+            for (String s : entries) {
+                File currentFile = new File(index.getPath(), s);
+                if (!currentFile.exists()) {
+                    AlertBox.display("", "Nothing to delete!");
+                    return;
+                }
+                currentFile.delete();
+            }
+            index.delete();
+            Parse.deleteStatics();
+            Dictionary.deleteMutex();
+            Indexer.deleteDictionary();
         }
-        index.delete();
-        Parse.deleteStatics();
-        Dictionary.deleteMutex();
-        Indexer.deleteDictionary();
+
+        /**
+         * starts the processing
+         *
+         * @param inputPath
+         * @param outputPath
+         * @param toStemm
+         */
+        private void startProgram (String inputPath, String outputPath,boolean toStemm){
+            ProgramStarter.startProgram(inputPath, outputPath, toStemm);
+        }
+
+        public static void main (String[]args){
+            launch(args);
+        }
     }
 
-    /**
-     * starts the processing
-     *
-     * @param inputPath
-     * @param outputPath
-     * @param toStemm
-     */
-    private void startProgram(String inputPath, String outputPath, boolean toStemm) {
-        ProgramStarter.startProgram(inputPath, outputPath, toStemm);
-    }
 
-    public static void main(String[] args) {
-        launch(args);
-    }
-}

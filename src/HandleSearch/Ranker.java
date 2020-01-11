@@ -128,8 +128,7 @@ public class Ranker {
      * @return 1 if header contains un-stemmed version of the term supllied, else false
      */
     private int isTermInHeader(String term, ArrayList<String> docHeaderStrings) {
-        ArrayList<String> headerAfterStemming=new ArrayList<>();
-        return headerAfterStemming.contains(term) ? 1 : 0 ;
+        return docHeaderStrings.contains(term) ? 1 : 0 ;
     }
 
     /**
