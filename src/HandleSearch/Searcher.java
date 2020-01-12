@@ -6,6 +6,7 @@ import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
 import OuputFiles.DocumentFile.DocumentFileHandler;
+import OuputFiles.DocumentFile.DocumentFileObject;
 import OuputFiles.PostingFile.FindTermData;
 import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.CapsTerm;
@@ -18,6 +19,7 @@ import datamuse.JSONParse;
 import javafx.util.Pair;
 
 import java.io.File;
+import java.sql.SQLOutput;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -26,9 +28,7 @@ import java.util.regex.Pattern;
  * this class uses the class Ranker for that purpose
  */
 public class Searcher {
-    private ArrayList<String> docsPath;
     private static Pattern stickPattern = Pattern.compile("[\\|]");
-    private static Pattern dfPattern = Pattern.compile("[d][f][\\{]");
     private static Pattern escape = Pattern.compile("[ ]");
     private static Pattern splitByEntities = Pattern.compile("[E][N][T][I][T][I][E][S][:]");
     private static Pattern splitByDotCom = Pattern.compile("[\\;]");
@@ -44,9 +44,7 @@ public class Searcher {
     private boolean isStemm;
     private Dictionary dictionary;
 
-    public Searcher(ArrayList<String> docsPath, boolean isSemantic,
-                    boolean isStemm, Dictionary dictionary, HashSet<String> stopWords) {
-        this.docsPath = docsPath;
+    public Searcher(boolean isSemantic, boolean isStemm, Dictionary dictionary, HashSet<String> stopWords) {
         this.isSemantic = isSemantic;
         this.isStemm = isStemm;
         this.dictionary = dictionary;
@@ -90,6 +88,7 @@ public class Searcher {
             System.out.println(score);
             keepScores.add(new Pair<>(entry.getKey(), score));
         }
+        System.out.println("end");
         Collections.sort(keepScores, new Comparator<Pair<String, Double>>() {
             @Override
             public int compare(Pair<String, Double> o1, Pair<String, Double> o2) {
@@ -163,7 +162,7 @@ public class Searcher {
                 if(currentDocData == null){
                     //reading doc's line of data from the doc's file
                     long start = System.currentTimeMillis();
-                    String docData = dfh.searchDocInFiles(currentDocNo, this.docsPath);
+                    String docData = DocumentFileObject.getInstance().docsHolder.get(currentDocNo);
                     long end = System.currentTimeMillis();
                     System.out.println(end - start);
                     String[] splitterData = splitByDotCom.split(docData);
@@ -372,7 +371,7 @@ public class Searcher {
 
         //finding the doc's properties
         DocumentFileHandler dfh = new DocumentFileHandler();
-        String docData = dfh.searchDocInFiles(docNo, this.docsPath);
+        String docData = DocumentFileObject.getInstance().docsHolder.get(docNo);
 
         //gets all of the entities in a doc
         String[] splitter = splitByEntities.split(docData);

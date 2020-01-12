@@ -6,6 +6,8 @@ import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
 import OuputFiles.DictionaryFileHandler;
+import OuputFiles.DocumentFile.DocumentFileHandler;
+import OuputFiles.DocumentFile.DocumentFileObject;
 import TermsAndDocs.TermCounterPair;
 import TermsAndDocs.Terms.Term;
 import javafx.application.Application;
@@ -254,7 +256,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
                     AlertBox.display("", "No dictionary file!");
                 }
             }
-            Searcher searcher = new Searcher(generateDocsFiles(), similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
+            Searcher searcher = new Searcher(similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
             ArrayList<QueryIDDocDataToView> datas = new ArrayList<>();
             for (Map.Entry<String, String> entry: queries.entrySet()){
                 ArrayList<DocumentDataToView> queryAnswers = searcher.search(entry.getValue(), entities);
@@ -283,7 +285,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
                 AlertBox.display("", "No dictionary file!");
             }
         }
-        Searcher searcher = new Searcher(generateDocsFiles(), similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
+        Searcher searcher = new Searcher(similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
         ArrayList<DocumentDataToView> answer = searcher.search(query,entities);
         this.showResultsWithoutIds(answer);
         if (writeToFile) {
@@ -383,11 +385,20 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
      * @param outputPath
      */
     private void loadDictionaryToMemory(String outputPath) {
+        DocumentFileHandler documentFileHandler = new DocumentFileHandler();
+        DocumentFileObject documentFileObject = DocumentFileObject.getInstance();
+        documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles()));
+        System.out.println(documentFileObject.docsHolder.size());
         try {
-            boolean isWithStemming = stemCheckBox.isSelected();
-            DictionaryFileHandler dfh = new DictionaryFileHandler(new Dictionary());
-            this.dictionary = dfh.readFromFile(outputPath, isWithStemming);
-            System.out.println("loaded");
+            if(Indexer.dictionary.getDictionaryTable().size() == 0) {
+                boolean isWithStemming = stemCheckBox.isSelected();
+                DictionaryFileHandler dfh = new DictionaryFileHandler(new Dictionary());
+                this.dictionary = dfh.readFromFile(outputPath, isWithStemming);
+                System.out.println("loaded");
+            }
+            else{
+                this.dictionary = Indexer.dictionary;
+            }
         } catch (Exception e) {
             AlertBox.display("", "No dictionary in memory!");
         }
