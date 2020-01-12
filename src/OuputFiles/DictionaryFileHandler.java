@@ -72,10 +72,15 @@ public class DictionaryFileHandler {
      * @return
      */
     public Dictionary readFromFile(String dictionaryPath, boolean toStem) {
-        if (toStem)
+        String outPath = dictionaryPath;
+        if (toStem) {
             dictionaryPath = dictionaryPath + "\\sDic";
-        else
+            outPath += "\\stemOur_";
+        }
+        else {
             dictionaryPath = dictionaryPath + "\\nsDic";
+            outPath += "\\noStemOur_";
+        }
         try  {
             BufferedReader br = new BufferedReader(new FileReader(dictionaryPath));
             String line;
@@ -90,7 +95,7 @@ public class DictionaryFileHandler {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                PostingFilePointer pointer = new PostingFilePointer(dictionaryPath + "\\" +splited[3]);
+                PostingFilePointer pointer = new PostingFilePointer(outPath + splited[3]);
                 CountAndPointerDicValue dicValue = new CountAndPointerDicValue();
                 dicValue.setTotalCount(totalCount);
                 dicValue.setPointer(pointer);
