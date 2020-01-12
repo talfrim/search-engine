@@ -1,4 +1,5 @@
 import HandleParse.Parse;
+import HandleReadFiles.QueryFileUtil;
 import HandleSearch.DocDataHolders.DocumentDataToView;
 import HandleSearch.DocDataHolders.QueryIDDocDataToView;
 import HandleSearch.Searcher;

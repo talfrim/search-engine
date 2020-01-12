@@ -5,7 +5,7 @@
  * as published by Sam Hocevar. See the COPYING file for more details.
  */
 
-package datamuse;
+package HandleSearch.datamuse;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -33,7 +33,7 @@ public class DatamuseQuery {
      */
     public String findSimilar(String word) {
         String s = word.replaceAll(" ", "+");
-        return getJSON("http://api.datamuse.com/words?rd="+s);
+        return getJSON("http://api.HandleSearch.datamuse.com/words?rd="+s);
     }
 
     /**
@@ -44,7 +44,7 @@ public class DatamuseQuery {
      */
     public String findSimilarStartsWith(String word, String startLetter) {
         String s = word.replaceAll(" ", "+");
-        return getJSON("http://api.datamuse.com/words?rd="+s+"&sp="+startLetter+"*");
+        return getJSON("http://api.HandleSearch.datamuse.com/words?rd="+s+"&sp="+startLetter+"*");
     }
 
     /**
@@ -55,7 +55,7 @@ public class DatamuseQuery {
      */
     public String findSimilarEndsWith(String word, String endLetter) {
         String s = word.replaceAll(" ", "+");
-        return getJSON("http://api.datamuse.com/words?rd="+s+"&sp=*"+endLetter);
+        return getJSON("http://api.HandleSearch.datamuse.com/words?rd="+s+"&sp=*"+endLetter);
     }
 
     /**
@@ -71,7 +71,7 @@ public class DatamuseQuery {
         for (int i = 0; i < numberMissing; i++) {
             sb.append("?");
         }
-        return getJSON("http://api.datamuse.com/words?sp=" + startLetter + sb + endLetter);
+        return getJSON("http://api.HandleSearch.datamuse.com/words?sp=" + startLetter + sb + endLetter);
     }
 
     /**
@@ -82,7 +82,7 @@ public class DatamuseQuery {
      * @return A list of matching words.
      */
     public String wordsStartingWithEndingWith(String startLetter, String endLetter) {
-        return getJSON("http://api.datamuse.com/words?sp=" + startLetter + "*" + endLetter);
+        return getJSON("http://api.HandleSearch.datamuse.com/words?sp=" + startLetter + "*" + endLetter);
     }
 
     /**
@@ -92,7 +92,7 @@ public class DatamuseQuery {
      */
     public String soundsSimilar(String word) {
         String s = word.replaceAll(" ", "+");
-        return getJSON("http://api.datamuse.com/words?sl=" + s);
+        return getJSON("http://api.HandleSearch.datamuse.com/words?sl=" + s);
     }
 
     /**
@@ -102,7 +102,7 @@ public class DatamuseQuery {
      */
     public String speltSimilar(String word) {
         String s = word.replaceAll(" ", "+");
-        return getJSON("http://api.datamuse.com/words?sp=" + s);
+        return getJSON("http://api.HandleSearch.datamuse.com/words?sp=" + s);
     }
 
     /**
@@ -113,7 +113,7 @@ public class DatamuseQuery {
      */
     public String prefixHintSuggestions(String word) {
         String s = word.replaceAll(" ", "+");
-        return getJSON("http://api.datamuse.com/sug?s=" + s);
+        return getJSON("http://api.HandleSearch.datamuse.com/sug?s=" + s);
     }
 
     /**
