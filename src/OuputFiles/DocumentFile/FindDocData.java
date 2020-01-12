@@ -2,6 +2,7 @@ package OuputFiles.DocumentFile;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
@@ -9,23 +10,16 @@ import java.util.regex.Pattern;
  * using it's ID (docNo)
  */
 public class FindDocData implements Runnable {
-    private static Pattern splitByDotCom= Pattern.compile("[\\;]");
     private BufferedReader reader;
-    private String docNo;
-    private String docData;
+    private ConcurrentHashMap<String, String> dataHolder;
 
-    public FindDocData(BufferedReader reader, String docNo) {
+    protected FindDocData(BufferedReader reader, ConcurrentHashMap<String, String> dataHolder) {
         this.reader = reader;
-        this.docNo = docNo;
-        this.docData = null;
-    }
-
-    public String getDocData() {
-        return docData;
+        this.dataHolder = dataHolder;
     }
 
     /**
-     * searching for doc in file
+     * saving all the docs data in that file inside hash
      * saving it's line of properties
      */
     @Override
@@ -34,11 +28,17 @@ public class FindDocData implements Runnable {
         try {
             line = reader.readLine();
             while (line != null) {
-                String [] postSplit = splitByDotCom.split(line);
-                if(postSplit[0].equals(docNo)) {
-                    this.docData = line;
-                    return;
+                String docNo = "";
+                int i = 0;
+                char ch = line.charAt(i);
+                while (ch != ';'){
+                    docNo += ch;
+                    i++;
+                    ch = line.charAt(i);
                 }
+                i++;
+                String docData = line.substring(i);
+                dataHolder.put(docNo, docData);
                 line = reader.readLine();
             }
             reader.close();
