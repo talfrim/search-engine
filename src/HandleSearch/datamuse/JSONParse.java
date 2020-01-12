@@ -5,7 +5,7 @@
  * as published by Sam Hocevar. See the COPYING file for more details.
  */
 
-package datamuse;
+package HandleSearch.datamuse;
 
 import com.json.parsers.JSONParser;
 import com.json.parsers.JsonParserFactory;

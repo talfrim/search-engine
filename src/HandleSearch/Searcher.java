@@ -14,8 +14,8 @@ import TermsAndDocs.Terms.RegularTerm;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 import com.medallia.word2vec.Word2VecModel;
-import datamuse.DatamuseQuery;
-import datamuse.JSONParse;
+import HandleSearch.datamuse.DatamuseQuery;
+import HandleSearch.datamuse.JSONParse;
 import javafx.util.Pair;
 
 import java.io.File;
@@ -339,7 +339,7 @@ public class Searcher {
     }
 
     /**
-     * Using datamuse API to get a list of similar words
+     * Using HandleSearch.datamuse API to get a list of similar words
      *
      * @return ArrayList of similar words
      * @apiNote requires internet connection!

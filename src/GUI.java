@@ -1,4 +1,5 @@
 import HandleParse.Parse;
+import HandleReadFiles.QueryFileUtil;
 import HandleSearch.DocDataHolders.DocumentDataToView;
 import HandleSearch.DocDataHolders.QueryIDDocDataToView;
 import HandleSearch.Searcher;
@@ -23,7 +24,9 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,6 +76,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     //part 2
     Separator separator1;
+    private String resultFileName ="results";
 
 
     @SuppressWarnings({"JoinDeclarationAndAssignmentJava", "Duplicates"})
@@ -267,6 +271,17 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
             }
             this.showResultsWithIds(datas);
             if (writeToFile){
+                try {
+                    File toCreate = new File(path);
+                    toCreate.mkdir(); //creating te file
+                    FileWriter fw = new FileWriter(path, false);
+                    BufferedWriter bw = new BufferedWriter(fw);
+                    for (int i = 0; i < datas.size(); i++) {
+                        bw.write(datas.get(i).getQueryID() + " " +0+ " " + datas.get(i).getDocNo() + " " + "1" + " " + "42.23" + " " +"mt" + "\n");
+                    }
+                    bw.close();
+                }
+                catch (Exception e) {}
 
             }
 
@@ -289,21 +304,37 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         ArrayList<DocumentDataToView> answer = searcher.search(query,entities);
         this.showResultsWithoutIds(answer);
         if (writeToFile) {
-
+            String qId = "000";
+            String path = resultFileTextField +"\\" + resultFileName;
+            try {
+                File toCreate = new File(path);
+                toCreate.mkdir();
+                FileWriter fw = new FileWriter(path, false);
+                BufferedWriter bw = new BufferedWriter(fw);
+                for (int i = 0; i < answer.size(); i++) {
+                    bw.write(qId + " " +0+ " " + answer.get(i).getDocNo() + " " + "1" + " " + "42.23" + " " +"mt" + "\n");
+                }
+                bw.close();
+            }
+            catch (Exception e) {}
         }
 
     }
 
+    @SuppressWarnings("Duplicates")
     private void showResultsWithoutIds(ArrayList<DocumentDataToView> answer) {
+        System.out.println("Showing results of single q");
+        answer.add(new DocumentDataToView("testdocNo1","testDate1","testEnts1"));
+        answer.add(new DocumentDataToView("testdocNo2","testDate2","testEnts2"));
         Stage stage = new Stage();
         TableView tableView = new TableView();
 
         TableColumn<String, DocumentDataToView> docNoCol = new TableColumn("DocNo");
         docNoCol.setCellValueFactory(new PropertyValueFactory<>("docNo"));
         TableColumn<String, DocumentDataToView> dateCol = new TableColumn("Doc Date");
-        docNoCol.setCellValueFactory(new PropertyValueFactory<>("date"));
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
         TableColumn<String, DocumentDataToView> entitiesCol = new TableColumn("Entities");
-        docNoCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
+        entitiesCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
 
         tableView.getColumns().add(docNoCol);
         if (showDateCheckBox.isSelected())
@@ -313,6 +344,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
         for (int i = 0; i < answer.size(); i++) {
             tableView.getItems().add(answer.get(i));
+            System.out.println(answer.get(i).getDocNo());
         }
         VBox vbox = new VBox(tableView);
         Scene scene = new Scene(vbox);
@@ -331,9 +363,9 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         TableColumn<String, QueryIDDocDataToView> docNoCol = new TableColumn("DocNo");
         docNoCol.setCellValueFactory(new PropertyValueFactory<>("docNo"));
         TableColumn<String, QueryIDDocDataToView> dateCol = new TableColumn("Doc Date");
-        docNoCol.setCellValueFactory(new PropertyValueFactory<>("date"));
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
         TableColumn<String, QueryIDDocDataToView> entitiesCol = new TableColumn("Entities");
-        docNoCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
+        entitiesCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
 
         tableView.getColumns().add(queryIdCol);
         tableView.getColumns().add(docNoCol);
@@ -355,10 +387,11 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         try {
             return ProgramStarter.readStopWords(inputPath + "\\05 stop_words");
         } catch (Exception e) {
-            AlertBox.display("", "Stop words file not found!");
-            return null;
+            AlertBox.display("", "Stop words file not found, default stop words file will be used");
+            try { return ProgramStarter.readStopWords("data\\05 stop_words"); } //default path
+            catch (Exception ourE) {ourE.printStackTrace();}
         }
-
+        return new HashSet<>();
     }
 
     private ArrayList<String> generateDocsFiles() {
@@ -381,7 +414,6 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     /**
      * loads doctionary from outputPath, according to stemming box
-     *
      * @param outputPath
      */
     private void loadDictionaryToMemory(String outputPath) {
@@ -454,6 +486,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         Parse.deleteStatics();
         Dictionary.deleteMutex();
         Indexer.deleteDictionary();
+        dictionary=null;
     }
 
     /**

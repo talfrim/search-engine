@@ -15,4 +15,20 @@ public class QueryIDDocDataToView {
         this.date = date;
         this.entities = entities;
     }
+
+    public String getQueryID() {
+        return queryID;
+    }
+
+    public String getDocNo() {
+        return docNo;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public String getEntities() {
+        return entities;
+    }
 }
