@@ -76,7 +76,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     //part 2
     Separator separator1;
-    private String resultFileName ="results";
+    private String resultFileName = "results";
 
 
     @SuppressWarnings({"JoinDeclarationAndAssignmentJava", "Duplicates"})
@@ -107,7 +107,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         //part 2
         singleQueryTextField = new TextField();
         singleQueryTextField.setText("Insert your query here");
-        singleQueryTextField.setPrefSize(315,40);
+        singleQueryTextField.setPrefSize(315, 40);
         queriesFilePathTextFiled = new TextField();
         queriesFilePathTextFiled.setText("Or choose a file...");
         resultFileTextField = new TextField();
@@ -144,7 +144,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         });
         searchUsingFileButton = new Button("RUN on queries file");
         searchUsingFileButton.setOnAction(this);
-        resultsFilePathBrowseButton = new Button("Browse result file");
+        resultsFilePathBrowseButton = new Button("Browse result folder");
         resultsFilePathBrowseButton.setOnAction(e -> {
             File resultsPath = resultsFilePathChooser.showDialog(primaryStage);
             resultFileTextField.setText(resultsPath.getAbsolutePath());
@@ -168,10 +168,9 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         menuBar.getMenus().add(help);
         MenuItem readme = new MenuItem("Readme");
         help.getItems().add(readme);
-        readme.setOnAction(e-> {
+        readme.setOnAction(e -> {
             AlertBox.display("Readme", ReadmeViewer.readmeStr);
         });
-
 
 
         //build scene
@@ -262,30 +261,38 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
             }
             Searcher searcher = new Searcher(similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
             ArrayList<QueryIDDocDataToView> datas = new ArrayList<>();
-            for (Map.Entry<String, String> entry: queries.entrySet()){
+            for (Map.Entry<String, String> entry : queries.entrySet()) {
                 ArrayList<DocumentDataToView> queryAnswers = searcher.search(entry.getValue(), entities);
-                for (DocumentDataToView docData : queryAnswers)
-                {
-                    datas.add(new QueryIDDocDataToView(entry.getKey(),docData.getDocNo(),docData.getDate(),docData.getEntities()));
+                int x = 0;
+                for (DocumentDataToView docData : queryAnswers) {
+                    datas.add(new QueryIDDocDataToView(entry.getKey(), docData.getDocNo(), docData.getDate(), docData.getEntities()));
                 }
+                System.out.println(x);
+                x++;
             }
-            this.showResultsWithIds(datas);
-            if (writeToFile){
+            if (writeToFile) {
+                path = resultFileTextField.getText()+"\\"+resultFileName;
                 try {
-                    File toCreate = new File(path);
-                    toCreate.mkdir(); //creating te file
-                    FileWriter fw = new FileWriter(path, false);
+                    File toCreateFile =new File(path);
+                    if (toCreateFile.exists())
+                        toCreateFile.delete();
+                    toCreateFile.createNewFile(); //create empty file
+                    FileWriter fw = new FileWriter(path, true);
                     BufferedWriter bw = new BufferedWriter(fw);
                     for (int i = 0; i < datas.size(); i++) {
-                        bw.write(datas.get(i).getQueryID() + " " +0+ " " + datas.get(i).getDocNo() + " " + "1" + " " + "42.23" + " " +"mt" + "\n");
+                        String queryId = datas.get(i).getQueryID();
+                        if(queryId.charAt(queryId.length() - 1) == ' ')
+                            queryId = queryId.substring(0, queryId.length() - 1);
+                        bw.append(queryId + " " + 0 + " " + datas.get(i).getDocNo() + " " + "1" + " " + "42.23" + " " + "mt" + "\n");
+                        bw.newLine();
                     }
                     bw.close();
+                } catch (Exception e) {
                 }
-                catch (Exception e) {}
-
             }
 
         } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -301,22 +308,25 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
             }
         }
         Searcher searcher = new Searcher(similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
-        ArrayList<DocumentDataToView> answer = searcher.search(query,entities);
+        ArrayList<DocumentDataToView> answer = searcher.search(query, entities);
         this.showResultsWithoutIds(answer);
         if (writeToFile) {
             String qId = "000";
-            String path = resultFileTextField +"\\" + resultFileName;
+            String path = resultFileTextField.getText()+"\\"+resultFileName;
             try {
-                File toCreate = new File(path);
-                toCreate.mkdir();
-                FileWriter fw = new FileWriter(path, false);
+                File toCreateFile =new File(path);
+                if (toCreateFile.exists())
+                    toCreateFile.delete();
+                toCreateFile.createNewFile(); //create empty file
+                FileWriter fw = new FileWriter(path, true);
                 BufferedWriter bw = new BufferedWriter(fw);
                 for (int i = 0; i < answer.size(); i++) {
-                    bw.write(qId + " " +0+ " " + answer.get(i).getDocNo() + " " + "1" + " " + "42.23" + " " +"mt" + "\n");
+                    bw.append(qId + " " + 0 + " " + answer.get(i).getDocNo() + " " + "1" + " " + "42.23" + " " + "mt" + "\n");
+                    bw.newLine();
                 }
                 bw.close();
+            } catch (Exception e) {
             }
-            catch (Exception e) {}
         }
 
     }
@@ -385,8 +395,12 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
             return ProgramStarter.readStopWords(inputPath + "\\05 stop_words");
         } catch (Exception e) {
             AlertBox.display("", "Stop words file not found, default stop words file will be used");
-            try { return ProgramStarter.readStopWords("data\\05 stop_words"); } //default path
-            catch (Exception ourE) {ourE.printStackTrace();}
+            try {
+                return ProgramStarter.readStopWords("data\\05 stop_words");
+            } //default path
+            catch (Exception ourE) {
+                ourE.printStackTrace();
+            }
         }
         return new HashSet<>();
     }
@@ -411,6 +425,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     /**
      * loads doctionary from outputPath, according to stemming box
+     *
      * @param outputPath
      */
     private void loadDictionaryToMemory(String outputPath) {
@@ -419,13 +434,12 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles()));
         System.out.println(documentFileObject.docsHolder.size());
         try {
-            if(Indexer.dictionary.getDictionaryTable().size() == 0) {
+            if (Indexer.dictionary.getDictionaryTable().size() == 0) {
                 boolean isWithStemming = stemCheckBox.isSelected();
                 DictionaryFileHandler dfh = new DictionaryFileHandler(new Dictionary());
                 this.dictionary = dfh.readFromFile(outputPath, isWithStemming);
                 System.out.println("loaded");
-            }
-            else{
+            } else {
                 this.dictionary = Indexer.dictionary;
             }
         } catch (Exception e) {
@@ -483,7 +497,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         Parse.deleteStatics();
         Dictionary.deleteMutex();
         Indexer.deleteDictionary();
-        dictionary=null;
+        dictionary = null;
     }
 
     /**
