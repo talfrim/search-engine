@@ -4,7 +4,6 @@ import HandleSearch.DocDataHolders.DocRankData;
 import HandleSearch.DocDataHolders.DocumentDataToView;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
-import IndexerAndDictionary.Indexer;
 import OuputFiles.DocumentFile.DocumentFileHandler;
 import OuputFiles.DocumentFile.DocumentFileObject;
 import OuputFiles.PostingFile.FindTermData;
@@ -19,7 +18,6 @@ import HandleSearch.datamuse.JSONParse;
 import javafx.util.Pair;
 
 import java.io.File;
-import java.sql.SQLOutput;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -72,23 +70,18 @@ public class Searcher {
         ArrayList<Pair<Term, String>> queryTermPostingData = getPostData(queryTerms);
         ArrayList<Pair<Term, String>> semanticTermPostingData = getPostData(semanticTerms);
 
-        long start = System.currentTimeMillis();
         //keeping all of the doc's relevant data for the ranker calculation
         HashMap<String, DocRankData> hashChecker = new HashMap<>();
         getDocsData(queryTermPostingData, hashChecker, 0);
         getDocsData(semanticTermPostingData, hashChecker, 1);
-        long end = System.currentTimeMillis();
-        System.out.println(end-start);
 
         //ranking every relevant doc
         ArrayList<Pair<String, Double>> keepScores = new ArrayList<>();
         Ranker ranker = new Ranker(this.isSemantic);
         for (Map.Entry<String, DocRankData> entry : hashChecker.entrySet()){
             double score = ranker.rankDocument(entry.getValue());
-            System.out.println(score);
             keepScores.add(new Pair<>(entry.getKey(), score));
         }
-        System.out.println("end");
         Collections.sort(keepScores, new Comparator<Pair<String, Double>>() {
             @Override
             public int compare(Pair<String, Double> o1, Pair<String, Double> o2) {
@@ -124,7 +117,7 @@ public class Searcher {
     private String makeEntitiesString(ArrayList<Term> entities) {
         String ans = "";
         for(Term t : entities){
-            ans += t.getData() + ", ";
+            ans += t.getData() + ";  ";
         }
         if (entities.size() > 0)
             ans = ans.substring(0, ans.length() - 2);
@@ -161,11 +154,9 @@ public class Searcher {
                 DocRankData currentDocData = hashChecker.get(currentDocNo);
                 if(currentDocData == null){
                     //reading doc's line of data from the doc's file
-                    long start = System.currentTimeMillis();
                     String docData = DocumentFileObject.getInstance().docsHolder.get(currentDocNo);
-                    long end = System.currentTimeMillis();
-                    System.out.println(end - start);
                     String[] splitterData = splitByDotCom.split(docData);
+
                     //initializing doc's fields
                     currentDocData = new DocRankData(currentDocNo);
                     initializeDocNecessaryData(currentDocData, splitterData);
@@ -201,9 +192,9 @@ public class Searcher {
         //set the size of doc
         currentDocData.setLengthOfDoc(Integer.parseInt(splitter[1]));
         //set the date of the file
-        currentDocData.setDocDate(splitter[5]);
+        currentDocData.setDocDate(splitter[4]);
         //set the header of doc - we need to parse the header in order to get additional hits in the Ranker
-        String currentHeader = splitter[6];
+        String currentHeader = splitter[5];
         ArrayList<String> inputHeaderForParse = splitBySpaceToArrayList(currentHeader);
         ArrayList<Term> parsedHeader = parseQueryAndHeader(inputHeaderForParse);
         currentDocData.setDocHeaderStrings(parsedHeader);
@@ -367,10 +358,7 @@ public class Searcher {
      * @return {@code ArrayList) of the five (if exists) most dominating entities in the doc
      */
     public ArrayList<Term> fiveTopEntities(String docNo) {
-        Dictionary dictionary = Indexer.dictionary;
-
         //finding the doc's properties
-        DocumentFileHandler dfh = new DocumentFileHandler();
         String docData = DocumentFileObject.getInstance().docsHolder.get(docNo);
 
         //gets all of the entities in a doc
@@ -417,7 +405,6 @@ public class Searcher {
      * @return array list of scores for each entity
      */
     private ArrayList<Pair<Term, Double>> calculateScores(HashMap<Term, Integer> realEntities, String docNo) {
-        Pattern docNoSplit = Pattern.compile(docNo + ";");
         ArrayList<Pair<Term,Double>> scores = new ArrayList<>();
         for (Map.Entry<Term, Integer> entry : realEntities.entrySet()) {
             Term currentEntity = entry.getKey();

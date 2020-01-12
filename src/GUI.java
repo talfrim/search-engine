@@ -324,8 +324,6 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
     @SuppressWarnings("Duplicates")
     private void showResultsWithoutIds(ArrayList<DocumentDataToView> answer) {
         System.out.println("Showing results of single q");
-        answer.add(new DocumentDataToView("testdocNo1","testDate1","testEnts1"));
-        answer.add(new DocumentDataToView("testdocNo2","testDate2","testEnts2"));
         Stage stage = new Stage();
         TableView tableView = new TableView();
 
@@ -344,7 +342,6 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
         for (int i = 0; i < answer.size(); i++) {
             tableView.getItems().add(answer.get(i));
-            System.out.println(answer.get(i).getDocNo());
         }
         VBox vbox = new VBox(tableView);
         Scene scene = new Scene(vbox);
