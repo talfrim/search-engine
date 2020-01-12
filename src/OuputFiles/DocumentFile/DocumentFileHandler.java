@@ -1,13 +1,11 @@
 package OuputFiles.DocumentFile;
 
-import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.DocumentDateTerm;
 import TermsAndDocs.Terms.Term;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
