@@ -133,7 +133,7 @@ public class Searcher {
     }
 
     /**
-     * this method is filling every field inside the DocNecessaryData class
+     * this method is filling every field inside the DocRankData class
      * by getting list of terms and their data from the posting file
      * and by finding the data of every doc from the doc's file
      * @param termPostingData
@@ -180,6 +180,10 @@ public class Searcher {
         }
     }
 
+    /**
+     * This func returns array containing the docNo and tf of the document
+     * @return
+     */
     private String[] findDocNoAndTf(String docNoTfCurrent) {
         String[] ans = new String[2];
         String[] splitter = splitByDotCom.split(docNoTfCurrent);
