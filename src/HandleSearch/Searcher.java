@@ -127,7 +127,7 @@ public class Searcher {
 
     /**
      * @param terms
-     * @return hash of all the terms as keys and thier data in post file (String) as value
+     * @return hash of all the terms as keys and their data in post file (String) as value
      */
     private ArrayList<Pair<Term, String>> getPostData(ArrayList<Term> terms) {
         ArrayList<Pair<Term, String>> termPostingData = new ArrayList<>();
