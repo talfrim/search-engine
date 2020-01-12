@@ -9,6 +9,12 @@ public class DocumentDataToView {
         this.docNo = docNo;
     }
 
+    public DocumentDataToView(String docNo, String date, String entities) {
+        this.docNo = docNo;
+        this.date = date;
+        this.entities = entities;
+    }
+
     public void setDocNo(String docNo) {
         this.docNo = docNo;
     }

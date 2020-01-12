@@ -14,27 +14,39 @@ public class QueryFileUtil {
         String desc = "";
         try {
             File queryFile = new File(path);
+            if (!queryFile.exists())
+                System.out.println("no");
             Scanner reader = new Scanner(queryFile);
             String line = reader.nextLine();
             while (reader.hasNextLine()) {
-                while (!line.startsWith("<num>")) {
+                while (reader.hasNextLine() && !line.startsWith("<num>")) {
                     line = reader.nextLine();
                 }
-                num = line.split("<num> Number: ")[0];
-                while (!line.startsWith("<title>")) {
+                if (reader.hasNextLine()) {
+                    String[] numArr = line.split("<num> Number: ");
+                    num = numArr[1];
+                }
+                while (reader.hasNextLine() && !line.startsWith("<title>")) {
                     line = reader.nextLine();
                 }
-                title = line.split("<title> ")[0];
-                while (!line.startsWith("<desc> Description:")) {
+                if (reader.hasNextLine()) {
+                    title = line.split("<title> ")[1];
+                }
+                while (reader.hasNextLine() && !line.startsWith("<desc> Description:")) {
                     line = reader.nextLine();
                 }
-                line = reader.nextLine();
-                while (!line.startsWith("<narr> Narrative:")) {
+                if (reader.hasNextLine())
+                    line = reader.nextLine();
+                while (reader.hasNextLine() && !line.startsWith("<narr> Narrative:")) {
                     desc = desc + " " + line;
                     line = reader.nextLine();
                 }
-                idTextMap.put(num, title + " " + desc);
+                if(reader.hasNextLine()) {
+                    idTextMap.put(num, title + " " + desc);
+                    desc = "";
+                }
             }
+            reader.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
