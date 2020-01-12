@@ -90,7 +90,7 @@ public class DictionaryFileHandler {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                PostingFilePointer pointer = new PostingFilePointer(splited[3]);
+                PostingFilePointer pointer = new PostingFilePointer(dictionaryPath + "\\" +splited[3]);
                 CountAndPointerDicValue dicValue = new CountAndPointerDicValue();
                 dicValue.setTotalCount(totalCount);
                 dicValue.setPointer(pointer);
