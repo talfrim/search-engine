@@ -1,13 +1,15 @@
 package HandleSearch;
 
-import HandleParse.DataConfiguration.Stemmer;
-import HandleSearch.DocDataHolder.DocNecessaryData;
+import HandleSearch.DocDataHolders.DocRankData;
+import HandleSearch.DocDataHolders.DocumentDataToView;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
 import OuputFiles.DocumentFile.DocumentFileHandler;
 import OuputFiles.PostingFile.FindTermData;
 import TermsAndDocs.Pairs.TermDocPair;
+import TermsAndDocs.Terms.CapsTerm;
+import TermsAndDocs.Terms.RegularTerm;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 import com.medallia.word2vec.Word2VecModel;
@@ -15,10 +17,8 @@ import datamuse.DatamuseQuery;
 import datamuse.JSONParse;
 import javafx.util.Pair;
 
-import java.util.*;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
  */
 public class Searcher {
     private ArrayList<String> docsPath;
+    private static Pattern stickPattern = Pattern.compile("[\\|]");
     private static Pattern dfPattern = Pattern.compile("[d][f][\\{]");
     private static Pattern escape = Pattern.compile("[ ]");
     private static Pattern splitByEntities = Pattern.compile("[E][N][T][I][T][I][E][S][:]");
@@ -43,7 +44,8 @@ public class Searcher {
     private boolean isStemm;
     private Dictionary dictionary;
 
-    public Searcher(ArrayList<String> docsPath, boolean isSemantic, boolean isStemm, Dictionary dictionary, HashSet<String> stopWords) {
+    public Searcher(ArrayList<String> docsPath, boolean isSemantic,
+                    boolean isStemm, Dictionary dictionary, HashSet<String> stopWords) {
         this.docsPath = docsPath;
         this.isSemantic = isSemantic;
         this.isStemm = isStemm;
@@ -53,81 +55,198 @@ public class Searcher {
 
     /**
      * this method is responsible for the functionality of the class
-     * it receives a word and search for the documents which contains this term
+     * it receives words and search for the documents which contains this term
      * then we calculate for each of the relevant docs it's rank
      * we are returning at most 50 relevant docs by order
      * @param query
      * @return
      */
-    public ArrayList<String> search(ArrayList<String> query){
+    public ArrayList<DocumentDataToView> search(String query, boolean withEntities){
+        ArrayList<String> queryL = splitBySpaceToArrayList(query);
         ArrayList<String> semanticallyCloseWords = new ArrayList<>();
         if(isSemantic)
-            semanticallyCloseWords = getSemanticallyCloseWords(query);
-        //changing the words of the query and semantically close words so they would fit to the dictionary && posting file terms
-        ArrayList<Term> queryTerms = parseQueryAndHeader(query);
+            semanticallyCloseWords = getSemanticallyCloseWords(queryL);
+        //parsing the words of the query and semantically close words so they would fit to the dictionary && posting file terms
+        ArrayList<Term> queryTerms = parseQueryAndHeader(queryL);
         ArrayList<Term> semanticTerms = parseQueryAndHeader(semanticallyCloseWords);
 
         //finding the posting data for each term
         ArrayList<Pair<Term, String>> queryTermPostingData = getPostData(queryTerms);
         ArrayList<Pair<Term, String>> semanticTermPostingData = getPostData(semanticTerms);
 
-        //TODO object DocNecessaryData
-        //TODO extracting from hashes all the docNos
-        //finding the doc file data for each term
-        ArrayList<Pair<String, DocNecessaryData>> docsFileData = getDocsData(queryTermPostingData, semanticTermPostingData);
+        long start = System.currentTimeMillis();
+        //keeping all of the doc's relevant data for the ranker calculation
+        HashMap<String, DocRankData> hashChecker = new HashMap<>();
+        getDocsData(queryTermPostingData, hashChecker, 0);
+        getDocsData(semanticTermPostingData, hashChecker, 1);
+        long end = System.currentTimeMillis();
+        System.out.println(end-start);
 
+        //ranking every relevant doc
+        ArrayList<Pair<String, Double>> keepScores = new ArrayList<>();
+        Ranker ranker = new Ranker(this.isSemantic);
+        for (Map.Entry<String, DocRankData> entry : hashChecker.entrySet()){
+            double score = ranker.rankDocument(entry.getValue());
+            System.out.println(score);
+            keepScores.add(new Pair<>(entry.getKey(), score));
+        }
+        Collections.sort(keepScores, new Comparator<Pair<String, Double>>() {
+            @Override
+            public int compare(Pair<String, Double> o1, Pair<String, Double> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
 
-        return null;
+        //keeping only the docNo and date of the best 50 docs
+        ArrayList<DocumentDataToView> goodResults = new ArrayList<>();
+        for (int i = 0; (i < 50) && (i < keepScores.size()) ; i++) {
+            goodResults.add(new DocumentDataToView(keepScores.get(i).getKey()));
+            String currentDocNo = goodResults.get(i).getDocNo();
+            String currentDocDate = hashChecker.get(currentDocNo).getDocDate();
+            goodResults.get(i).setDate(currentDocDate);
+        }
+
+        //adding top 5 entities for the user to view
+        if(withEntities) {
+            for (int i = 0; i < goodResults.size(); i++) {
+                ArrayList<Term> entities = fiveTopEntities(goodResults.get(i).getDocNo());
+                String strEntities = makeEntitiesString(entities);
+                goodResults.get(i).setEntities(strEntities);
+            }
+        }
+
+        return goodResults;
     }
 
     /**
-     * this method is filling every
-     * @param queryTermPostingData
-     * @param semanticTermPostingData
+     * @param entities
+     * @return all the entities in one string
+     */
+    private String makeEntitiesString(ArrayList<Term> entities) {
+        String ans = "";
+        for(Term t : entities){
+            ans += t.getData() + ", ";
+        }
+        if (entities.size() > 0)
+            ans = ans.substring(0, ans.length() - 2);
+        return ans;
+    }
+
+    /**
+     * this method is filling every field inside the DocNecessaryData class
+     * by getting list of terms and their data from the posting file
+     * and by finding the data of every doc from the doc's file
+     * @param termPostingData
      * @return
      */
-    private ArrayList<Pair<String, DocNecessaryData>> getDocsData(ArrayList<Pair<Term, String>> queryTermPostingData,
-                                                          ArrayList<Pair<Term, String>> semanticTermPostingData) {
-        ArrayList<Pair<String, DocNecessaryData>> docsDataHash = new ArrayList<>();
-        HashMap<String, DocNecessaryData> hashChecker = new HashMap<>();
-        for (int p = 0; p < queryTermPostingData.size(); p++) {
-            Pair<Term, String> entry = queryTermPostingData.get(p);
-            String termPostingData = entry.getValue();
-            //finding term DF
-            String[] splitterDf = dfPattern.split(termPostingData);
-            String containsDF = splitterDf[1];
-            int i = 0;
-            char ch = containsDF.charAt(i);
-            String dfStr = "";
-            while (ch != '}'){
-                dfStr += ch;
-                i++;
-                ch = containsDF.charAt(i);
-            }
-            int termDf = Integer.parseInt(dfStr);
+    private void getDocsData(ArrayList<Pair<Term, String>> termPostingData,
+                             HashMap<String, DocRankData> hashChecker, int recognizer) {
+        for (int p = 0; p < termPostingData.size(); p++) {
+            Term currentTerm = termPostingData.get(p).getKey();
+            String currentTermData = termPostingData.get(p).getValue();
+            //finding df of current term
+            ArrayList<Object> dfAndString = findDf(currentTermData);
+            int termDf = (Integer) dfAndString.get(0);
+            String containsNotDf = (String) dfAndString.get(1);
 
             //extracting docNo && tf
-            String containsNotDf = splitterDf[0];
             String[] splitterTfDocNo = splitByBracket.split(containsNotDf);
             for(int k = 1; k < splitterTfDocNo.length; k++){
-                String docNoTfCurrent = splitterTfDocNo[k];
-                String[] splitter = splitByDotCom.split(docNoTfCurrent);
-                String currentDocNo = splitter[0];
-                if(hashChecker.get(currentDocNo) == null){
+                //getting the docNo and the term Tf for this specific doc
+                String[] docNoTfCurrent = findDocNoAndTf(splitterTfDocNo[k]);
+                String currentDocNo = docNoTfCurrent[0];
+                int termTf = Integer.parseInt(docNoTfCurrent[1]);
 
+                //if it's the first time we get that doc we need to create instance of DocNecessaryData the keeps that doc data
+                DocRankData currentDocData = hashChecker.get(currentDocNo);
+                if(currentDocData == null){
+                    //reading doc's line of data from the doc's file
+                    DocumentFileHandler dfh = new DocumentFileHandler();
+                    String docData = dfh.searchDocInFiles(currentDocNo, this.docsPath);
+                    String[] splitterData = splitByDotCom.split(docData);
+                    //initializing doc's fields
+                    currentDocData = new DocRankData(currentDocNo);
+                    initializeDocNecessaryData(currentDocData, splitterData);
+                    hashChecker.put(currentDocNo, currentDocData);
                 }
-                else {
+                //adding info for the doc info holder in the hash about the current term
+                if(recognizer == 0){
+                    currentDocData.addQueryWordData(currentTerm, termTf, termDf);
+                }
+                else{
+                    currentDocData.addSimilarQueryWordData(currentTerm, termTf, termDf);
                 }
             }
-
         }
+    }
 
-        return docsDataHash;
+    private String[] findDocNoAndTf(String docNoTfCurrent) {
+        String[] ans = new String[2];
+        String[] splitter = splitByDotCom.split(docNoTfCurrent);
+
+        ans[0] = splitter[0];//docNo
+        ans[1] = splitter[1].substring(0, splitter[1].length() - 1); //string of Tf value
+        return ans;
+    }
+
+    /**
+     * if it's the first time we get that doc we need to create instance of DocNecessaryData the keeps that doc data
+     * this method is responsible for initialize the values that aren't changing :
+     * Header, Date, Size
+     * @param currentDocData
+     */
+    private void initializeDocNecessaryData(DocRankData currentDocData, String[] splitter) {
+        //set the size of doc
+        currentDocData.setLengthOfDoc(Integer.parseInt(splitter[1]));
+        //set the date of the file
+        currentDocData.setDocDate(splitter[5]);
+        //set the header of doc - we need to parse the header in order to get additional hits in the Ranker
+        String currentHeader = splitter[6];
+        ArrayList<String> inputHeaderForParse = splitBySpaceToArrayList(currentHeader);
+        ArrayList<Term> parsedHeader = parseQueryAndHeader(inputHeaderForParse);
+        currentDocData.setDocHeaderStrings(parsedHeader);
+    }
+
+    /**
+     * this method is responsible for finding the df of given term by splitting it's line from the posting file
+     * and returning relevant part of the line from the posting file
+     * @return
+     */
+    private ArrayList<Object> findDf(String termPostingData) {
+        //finding term DF
+        int i = termPostingData.length() - 2;
+        char ch = termPostingData.charAt(i);
+        String dfStr = "";
+        while (ch != '{'){
+            dfStr = ch + dfStr;
+            i--;
+            ch = termPostingData.charAt(i);
+        }
+        ArrayList<Object> ans = new ArrayList<>();
+        ans.add(Integer.parseInt(dfStr));
+        ans.add(termPostingData.substring(0, i - 3));
+        return ans;
+    }
+
+    /**
+     * this method is responsible for creating array list of string from string header
+     * by splitting the string by ' '
+     * @param currentHeader
+     * @return ArrayList<String>headerWords</String>
+     */
+    private ArrayList<String> splitBySpaceToArrayList(String currentHeader) {
+        String[] splitter = escape.split(currentHeader);
+        ArrayList<String> ans = new ArrayList<>();
+        for(int i = 0; i < splitter.length; i++){
+            ans.add(splitter[i]);
+        }
+        return ans;
     }
 
     /**
      * @param terms
-     * @return hash of all the terms as keys and their data in post file (String) as value
+     * @return array list of all the terms as keys and their data in post file (String) as value
+     * (if exists !!!)
      */
     private ArrayList<Pair<Term, String>> getPostData(ArrayList<Term> terms) {
         ArrayList<Pair<Term, String>> termPostingData = new ArrayList<>();
@@ -136,8 +255,22 @@ public class Searcher {
             CountAndPointerDicValue dicVal = dictionary.get(currentTerm);
             if(dicVal != null){
                 String path = dicVal.getPointer().getFileStr();
-                String termLine = finder.findLine(path, currentTerm.getData());
+                String termLine;
+                if(currentTerm instanceof CapsTerm)
+                    termLine = finder.findLine(path, currentTerm.getData().toLowerCase());
+                else
+                    termLine = finder.findLine(path, currentTerm.getData());
+
                 termPostingData.add(new Pair<>(currentTerm, termLine));
+            }
+            else if(currentTerm instanceof CapsTerm){
+                currentTerm = new RegularTerm(currentTerm.getData().toLowerCase());
+                dicVal = dictionary.get(currentTerm);
+                if(dicVal != null){
+                    String path = dicVal.getPointer().getFileStr();
+                    String termLine = finder.findLine(path, currentTerm.getData());
+                    termPostingData.add(new Pair<>(currentTerm, termLine));
+                }
             }
         }
         return termPostingData;
@@ -153,7 +286,9 @@ public class Searcher {
         HashMap<Term, TermDocPair> hash= sp.parseForSearcher(query);
         ArrayList<Term> queryTerms = new ArrayList<>();
         for (Map.Entry<Term, TermDocPair> entry : hash.entrySet()) {
-            queryTerms.add(entry.getKey());
+            for (int i = 0; i < entry.getValue().getCounter(); i++) {
+                queryTerms.add(entry.getKey());
+            }
         }
         return queryTerms;
     }
@@ -241,24 +376,33 @@ public class Searcher {
         if (splitter.length == 1)
             return new ArrayList<>();
         String strEntities = splitter[1];
-        String[] mayEntities = splitByDotCom.split(strEntities);
+        String[] mayEntitiesWithCount = splitByDotCom.split(strEntities);
         TermBuilder builder = new TermBuilder();
-        ArrayList<Term> realEntities = new ArrayList<>();
+
+        HashMap<Term, Integer> realEntities = new HashMap<>();
+        ArrayList<Term> topFive = new ArrayList<>();
+
+        HashMap<String, Integer> mayEntries = new HashMap<>();
+        for(int i = 0; i < mayEntitiesWithCount.length; i++){
+            String currentUnited = mayEntitiesWithCount[i];
+            String[] splited = stickPattern.split(currentUnited);
+            int apperancesInDoc = Integer.parseInt(splited[1]);
+            mayEntries.put(splited[0], apperancesInDoc);
+        }
+
         //keeping only the right entities
-        for (int i = 0; i < mayEntities.length; i++) {
-            Term t = builder.buildTerm("EntityTerm", mayEntities[i]);
-            if (dictionary.contains(t))
-                realEntities.add(t);
+        for (Map.Entry<String, Integer> entry : mayEntries.entrySet()) {
+            Term t = builder.buildTerm("EntityTerm", entry.getKey());
+            if (dictionary.contains(t)) {
+                realEntities.put(t, entry.getValue());
+                topFive.add(t);
+            }
         }
         if (realEntities.size() <= 5) {
-            return realEntities;
-        } else {
-            ArrayList<Double> scores = calculateScores(realEntities, docNo);
-            ArrayList<Term> topFive = new ArrayList<>();
-            for (int i = 0; i <= 4; i++) {
-                topFive.add(extractBiggestScore(scores, realEntities));
-            }
             return topFive;
+        } else {
+            ArrayList<Pair<Term,Double>> scores = calculateScores(realEntities, docNo);
+            return extractBiggestScore(scores);
         }
     }
 
@@ -270,76 +414,44 @@ public class Searcher {
      * @param docNo
      * @return array list of scores for each entity
      */
-    private ArrayList<Double> calculateScores(ArrayList<Term> realEntities, String docNo) {
+    private ArrayList<Pair<Term, Double>> calculateScores(HashMap<Term, Integer> realEntities, String docNo) {
         Pattern docNoSplit = Pattern.compile(docNo + ";");
-        ArrayList<Double> scores = new ArrayList<>();
-        for (int i = 0; i < realEntities.size(); i++) {
-            Term currentEntity = realEntities.get(i);
+        ArrayList<Pair<Term,Double>> scores = new ArrayList<>();
+        for (Map.Entry<Term, Integer> entry : realEntities.entrySet()) {
+            Term currentEntity = entry.getKey();
             String[] strEntitySize = escape.split(currentEntity.getData());
 
             int entitySize = strEntitySize.length;
-            int appearancesInDoc = getNumOfAppearancesInDoc(dictionary, currentEntity, docNoSplit);
+            int appearancesInDoc = entry.getValue();
             int appearancesInCorpus = dictionary.get(currentEntity).getTotalCount();
 
             //calculating by formula
             double score = entitySize * appearancesInDoc;
             score = score / Math.log(appearancesInCorpus);
-            scores.add(score);
+            scores.add(new Pair<>(currentEntity, score));
 
         }
         return scores;
     }
 
-
-    /**
-     * this method is responsible for returning the number of appearances given term made in a given doc
-     * by getting the answer from the posting file
-     * @param dictionary
-     * @param entity
-     * @param docNoSplit
-     * @return
-     */
-    private int getNumOfAppearancesInDoc(Dictionary dictionary, Term entity, Pattern docNoSplit) {
-        String path = dictionary.get(entity).getPointer().getFileStr();
-        //finding the line of properties of the doc in posting file
-        FindTermData finder = new FindTermData();
-        String entitryLine = finder.findLine(path, entity.getData());
-
-        //getting from the line the number of appearances the term made inside the doc
-        String[] splitter = docNoSplit.split(entitryLine);
-        String contains = splitter[1];
-        String strApperances = "";
-        int i = 0;
-        char ch = contains.charAt(0);
-        while (ch != ')') {
-            strApperances += ch;
-            i++;
-            ch = contains.charAt(i);
-        }
-        int countApperances = Integer.parseInt(strApperances);
-
-        return countApperances;
-    }
-
-
     /**
      * this method is responsible for extracting and returning
      * the biggest score of term from the scores and realEntities arrays
      * @param scores
-     * @param realEntities
      * @return term with the biggest score
      */
-    private Term extractBiggestScore(ArrayList<Double> scores, ArrayList<Term> realEntities) {
-        double maxScore = 0;
-        int index = 0;
-        for (int i = 0; i < scores.size(); i++) {
-            if (scores.get(i) > maxScore) {
-                maxScore = scores.get(i);
-                index = i;
+    private ArrayList<Term> extractBiggestScore(ArrayList<Pair<Term, Double>> scores) {
+        Collections.sort(scores, new Comparator<Pair<Term, Double>>() {
+            @Override
+            public int compare(Pair<Term, Double> o1, Pair<Term, Double> o2) {
+                return o2.getValue().compareTo(o1.getValue());
             }
+        });
+        ArrayList<Term> ans = new ArrayList<>();
+        for (int i = 0; i <= 4; i++) {
+            ans.add(scores.get(i).getKey());
         }
-        scores.remove(index);
-        return realEntities.remove(index);
+        return ans;
     }
 
 
@@ -351,18 +463,6 @@ public class Searcher {
         ) {
             list.add(word);
         }
-    }
-
-    /**
-     *
-     * @param toStem
-     * @return
-     */
-    private String stemmStr(String toStem) {
-        Stemmer stemm = new Stemmer();
-        stemm.add(toStem.toCharArray(), toStem.length());
-        stemm.stem();
-        return (stemm.toString());
     }
 
 }

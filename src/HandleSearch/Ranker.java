@@ -1,6 +1,7 @@
 package HandleSearch;
 
-import HandleParse.DataConfiguration.Stemmer;
+import HandleSearch.DocDataHolders.DocRankData;
+import TermsAndDocs.Terms.Term;
 
 import java.util.ArrayList;
 
@@ -16,11 +17,6 @@ public class Ranker {
      */
     private boolean isSemantic;
 
-    /**
-     * Field mentioning if in case of ranking with semantics we will use the online option
-     *
-     */
-    private boolean isSemanticOnline;
 
     /**
      * The percentage given to the ranking functions on the original query words when calculating the rank in case of taking into account
@@ -59,11 +55,9 @@ public class Ranker {
 
     /**
      * @param isSemantic field mentioning if we should take into account the result of the semantic connection
-     * @param isSemanticOnline mentioning if in case of ranking with semantics we will use the online option
      */
-    public Ranker(boolean isSemantic, boolean isSemanticOnline) {
+    public Ranker(boolean isSemantic) {
         this.isSemantic = isSemantic;
-        this.isSemanticOnline=isSemanticOnline;
     }
 
     /**
@@ -71,24 +65,21 @@ public class Ranker {
      * original query, and if {@code isSemantic} is true with the semantic close words also.
      * @return ranking
      */
-    public double rankDocument(
-            ArrayList<String> queryWords, ArrayList<Integer> queryWordsTfs, ArrayList<Integer> queryWordsDfs,
-             ArrayList<String> similarWords, ArrayList<Integer> similarWordsTfs, ArrayList<Integer> similarWordsDfs,
-              int lengthOfDoc,  ArrayList<String> docHeaderStrings)
+    public double rankDocument(DocRankData docRankData)
     {
         double output;
         if (!isSemantic) {
-            output = weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
-                    + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
-                    +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs);
+            output = weightOfBM25*getBM25Rank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs(),docRankData.getLengthOfDoc())
+                    + 0.05*getTermsInHeaderScore(docRankData.getQueryWords(),docRankData.getDocHeaderStrings())
+                    +(1-0.05-weightOfBM25)*getCosSimRank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs());
         }
         else //with semantics
-        output = weightOfOriginalQuery* (weightOfBM25*getBM25Rank(queryWordsTfs,queryWordsDfs,lengthOfDoc)
-                + 0.05*getTermsInHeaderScore(queryWords,docHeaderStrings)
-                +(1-0.05-weightOfBM25)*getCosSimRank(queryWordsTfs,queryWordsDfs))
-                +(1-weightOfOriginalQuery)* (weightOfBM25*getBM25Rank(similarWordsTfs,similarWordsDfs,lengthOfDoc)
-                + 0.05*getTermsInHeaderScore(similarWords,docHeaderStrings)
-                +(1-0.05-weightOfBM25)*getCosSimRank(similarWordsTfs,similarWordsDfs));
+        output = weightOfOriginalQuery* (weightOfBM25*getBM25Rank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs(),docRankData.getLengthOfDoc())
+                + 0.05*getTermsInHeaderScore(docRankData.getQueryWords(),docRankData.getDocHeaderStrings())
+                +(1-0.05-weightOfBM25)*getCosSimRank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs()))
+                +(1-weightOfOriginalQuery)* (weightOfBM25*getBM25Rank(docRankData.getSimilarWordsTfs(),docRankData.getSimilarWordsDfs(),docRankData.getLengthOfDoc())
+                + 0.05*getTermsInHeaderScore(docRankData.getSimilarWords(),docRankData.getDocHeaderStrings())
+                +(1-0.05-weightOfBM25)*getCosSimRank(docRankData.getSimilarWordsTfs(),docRankData.getSimilarWordsDfs()));
         return output;
     }
 
@@ -100,9 +91,8 @@ public class Ranker {
 
         double[] docVector = new double[tfs.size()];
         for (int i=0; i<docVector.length; i++) {
-            queryVector[i] = tfs.get(i) * getIdf(dfs.get(i));
+            docVector[i] = tfs.get(i) * getIdf(dfs.get(i));
         }
-
         return cosineSimilarity(queryVector,docVector);
     }
 
@@ -115,7 +105,8 @@ public class Ranker {
             normA += Math.pow(vectorA[i], 2);
             normB += Math.pow(vectorB[i], 2);
         }
-        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        double scoreCOS = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        return scoreCOS;
     }
 
     private double getBM25Rank(ArrayList<Integer> tfs, ArrayList<Integer> dfs, int lengthOfDoc) {
@@ -135,14 +126,8 @@ public class Ranker {
      * @param docHeaderStrings
      * @return 1 if header contains un-stemmed version of the term supllied, else false
      */
-    private int isTermInHeader(String term, ArrayList<String> docHeaderStrings) {
-        ArrayList<String> headerAfterStemming=new ArrayList<>();
-        for (int i=0; i<docHeaderStrings.size(); i++) {
-            String lower = docHeaderStrings.get(0).toLowerCase();
-            String stemmed = stemmStr(lower);
-            headerAfterStemming.add(stemmed);
-        }
-        return headerAfterStemming.contains(term) ? 1 : 0 ;
+    private int isTermInHeader(Term term, ArrayList<Term> docHeaderStrings) {
+        return docHeaderStrings.contains(term) ? 1 : 0 ;
     }
 
     /**
@@ -151,9 +136,9 @@ public class Ranker {
      * @param docHeaderStrings
      * @return the percentage of the words from the query that are in the documents header
      */
-    private double getTermsInHeaderScore(ArrayList<String> terms,ArrayList<String> docHeaderStrings) {
+    private double getTermsInHeaderScore(ArrayList<Term> terms, ArrayList<Term> docHeaderStrings) {
         int counter =0;
-        for (String term: terms) {
+        for (Term term: terms) {
             counter += isTermInHeader(term,docHeaderStrings); //this will give us the number of terms from the list which are in the header
         }
         return ((double) counter)/((double)terms.size());
@@ -167,18 +152,7 @@ public class Ranker {
         return (Math.log(numOfDocs/df)) / Math.log(2);
     }
 
-    /**
-     * using stemmer class to stem given string
-     * @param toStem
-     * @return stemmed string
-     * @see Stemmer
-     */
-    private String stemmStr(String toStem) {
-        Stemmer stemm = new Stemmer();
-        stemm.add(toStem.toCharArray(), toStem.length());
-        stemm.stem();
-        return (stemm.toString());
-    }
+
 
 
 

@@ -1,11 +1,14 @@
 package OuputFiles.DocumentFile;
 
+import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.DocumentDateTerm;
 import TermsAndDocs.Terms.Term;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -27,9 +30,10 @@ public class DocumentFileHandler {
      * @param documentDateTerm
      * @param header
      * @param docSize
+     * @param entities
      */
     public void writeDocumentDataToFile(String documentDataFilePath, String docNo, int numOfUniqueTerms, int mostCommonTermCounter, Term mostCommmonTerm,
-                                        DocumentDateTerm documentDateTerm, String header, int docSize, HashSet<Term> entities) {
+                                        DocumentDateTerm documentDateTerm, String header, int docSize, HashMap<Term, Integer> entities) {
 
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(docNo);
@@ -48,9 +52,11 @@ public class DocumentFileHandler {
         stringBuilder.append(";");
         stringBuilder.append("ENTITIES:");
         int count = 0;
-        for (Term entity: entities) {
+        for (Map.Entry<Term, Integer> entry : entities.entrySet()) {
             count++;
-            stringBuilder.append(entity.getData());
+            stringBuilder.append(entry.getKey().getData());//writing entity
+            stringBuilder.append("|");
+            stringBuilder.append(entry.getValue());//writing count of the entity in this doc
             stringBuilder.append(";");
         }
         if(count > 0)

@@ -1,4 +1,7 @@
 import HandleParse.Parse;
+import HandleSearch.DocDataHolders.DocumentDataToView;
+import HandleSearch.DocDataHolders.QueryIDDocDataToView;
+import HandleSearch.Searcher;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.Indexer;
@@ -21,6 +24,7 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 
@@ -97,14 +101,15 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         //part 2
         singleQueryTextField = new TextField();
         singleQueryTextField.setText("Insert your query here");
+        singleQueryTextField.setPrefSize(315,40);
         queriesFilePathTextFiled = new TextField();
         queriesFilePathTextFiled.setText("Or choose a file...");
         resultFileTextField = new TextField();
 
 
-
         //buttons
-        startButton = new Button("Start");
+        startButton = new Button("Start pre-processing");
+        startButton.setMinHeight(40);
         startButton.setOnAction(this);
         inputPathBrowseButton = new Button("Browse input directory");
         inputPathBrowseButton.setOnAction(e -> {
@@ -124,6 +129,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         loadDictionaryToMemoryButton.setOnAction(this);
         //part 2
         searchQueryFromTextButton = new Button("RUN query");
+        searchQueryFromTextButton.setMinHeight(40);
         searchQueryFromTextButton.setOnAction(this);
         queriesFileBrowseButton = new Button("Browse queries file");
         queriesFileBrowseButton.setOnAction(e -> {
@@ -133,7 +139,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         searchUsingFileButton = new Button("RUN on queries file");
         searchUsingFileButton.setOnAction(this);
         resultsFilePathBrowseButton = new Button("Browse result file");
-        resultsFilePathBrowseButton.setOnAction(e-> {
+        resultsFilePathBrowseButton.setOnAction(e -> {
             File resultsPath = resultsFilePathChooser.showDialog(primaryStage);
             resultFileTextField.setText(resultsPath.getAbsolutePath());
         });
@@ -143,13 +149,27 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         stemCheckBox = new CheckBox("Stemming");
         semanticallySimilarCheckBox = new CheckBox("Include sematically similar words");
         showEntitiesCheckBox = new CheckBox("Show top entities for results");
+        showDateCheckBox = new CheckBox("Show document dates");
         writeResultsToFileCheckBox = new CheckBox("Write to result file");
 
         //separator
         separator1 = new Separator();
+        separator1.setPrefHeight(5);
+
+        //menu bar
+        MenuBar menuBar = new MenuBar();
+        Menu help = new Menu("Help");
+        menuBar.getMenus().add(help);
+        MenuItem readme = new MenuItem("Readme");
+        help.getItems().add(readme);
+        readme.setOnAction(e-> {
+            AlertBox.display("Readme", ReadmeViewer.readmeStr);
+        });
+
 
 
         //build scene
+        mainVBox.getChildren().add(menuBar);
         inputHBox = new HBox(inputPathTextField, inputPathBrowseButton);
         outputHBox = new HBox(outputPathTextField, outputPathBrowseButton);
         mainVBox.getChildren().add(inputHBox);
@@ -157,25 +177,32 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         mainVBox.getChildren().add(stemCheckBox);
         mainVBox.getChildren().add(startButton);
         extraButtonsHBox = new HBox(resetButton, viewDictionaryButton, loadDictionaryToMemoryButton);
+        extraButtonsHBox.setSpacing(5);
         mainVBox.getChildren().add(extraButtonsHBox);
         //part 2
         mainVBox.getChildren().add(separator1);
         mainVBox.getChildren().add(semanticallySimilarCheckBox);
-        mainVBox.getChildren().add(showEntitiesCheckBox);
-        resultFileHBox = new HBox(resultFileTextField,resultsFilePathBrowseButton,writeResultsToFileCheckBox);
+        resultTableExtrasHBox = new HBox(showEntitiesCheckBox, showDateCheckBox);
+        resultTableExtrasHBox.setSpacing(15);
+        mainVBox.getChildren().add(resultTableExtrasHBox);
+        resultFileHBox = new HBox(resultFileTextField, resultsFilePathBrowseButton, writeResultsToFileCheckBox);
+        resultFileHBox.setSpacing(5);
         mainVBox.getChildren().add(resultFileHBox);
         singleQuerySearchHBox = new HBox(singleQueryTextField, searchQueryFromTextButton);
+        singleQuerySearchHBox.setSpacing(5);
         mainVBox.getChildren().add(singleQuerySearchHBox);
-        searchFromFileHBox = new HBox(queriesFilePathTextFiled,queriesFileBrowseButton,searchUsingFileButton);
+        searchFromFileHBox = new HBox(queriesFilePathTextFiled, queriesFileBrowseButton, searchUsingFileButton);
+        searchFromFileHBox.setSpacing(5);
         mainVBox.getChildren().add(searchFromFileHBox);
-        mainVBox.setSpacing(4);
+        mainVBox.setSpacing(15);
         layout.getChildren().add(mainVBox);
-        primaryStage.setScene(new Scene(layout, 385, 325));
+        primaryStage.setScene(new Scene(layout, 400, 460));
         primaryStage.show();
     }
 
     /**
      * handles events in the gui
+     *
      * @param event
      */
     @Override
@@ -200,44 +227,170 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         }
         //part 2
         if (event.getSource() == searchQueryFromTextButton) {
-            if (singleQueryTextField.getText().equals("")||singleQueryTextField.getText().equals("Insert your query here"))
-                AlertBox.display("","Please write a query and try again!");
+            if (singleQueryTextField.getText().equals("") || singleQueryTextField.getText().equals("Insert your query here"))
+                AlertBox.display("", "Please write a query and try again!");
             else
-                runSingleQuery(singleQueryTextField.getText(),semanticallySimilarCheckBox.isSelected());
+                runSingleQuery(singleQueryTextField.getText(), semanticallySimilarCheckBox.isSelected());
         }
         if (event.getSource() == searchUsingFileButton) {
             if (queriesFilePathTextFiled.getText().equals("") || queriesFilePathTextFiled.getText().equals("Or choose a file..."))
-                AlertBox.display("","Please choose file and try again!");
+                AlertBox.display("", "Please choose file and try again!");
             else
-                runQueriesFromFile(queriesFilePathTextFiled.getText(),semanticallySimilarCheckBox.isSelected());
+                runQueriesFromFile(queriesFilePathTextFiled.getText(), semanticallySimilarCheckBox.isSelected());
         }
     }
 
-    private void runQueriesFromFile(String path,boolean similarWords) {
+    @SuppressWarnings("Duplicates")
+    private void runQueriesFromFile(String path, boolean similarWords) {
+        showResultsWithIds(new ArrayList<>());
         try {
-            ArrayList<String> queries = QueryFileReader.extractQueries(path);
-        }
-        catch (Exception e){
+            HashMap<String, String> queries = QueryFileUtil.extractQueries(path);
+            boolean writeToFile = writeResultsToFileCheckBox.isSelected();
+            boolean entities = showEntitiesCheckBox.isSelected();
+            if (dictionary == null) {
+                try {
+                    loadDictionaryToMemory(outputPath);
+                } catch (Exception e) {
+                    AlertBox.display("", "No dictionary file!");
+                }
+            }
+            Searcher searcher = new Searcher(generateDocsFiles(), similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
+            ArrayList<QueryIDDocDataToView> datas = new ArrayList<>();
+            for (Map.Entry<String, String> entry: queries.entrySet()){
+                ArrayList<DocumentDataToView> queryAnswers = searcher.search(entry.getValue(), entities);
+                for (DocumentDataToView docData : queryAnswers)
+                {
+                    datas.add(new QueryIDDocDataToView(entry.getKey(),docData.getDocNo(),docData.getDate(),docData.getEntities()));
+                }
+            }
+            this.showResultsWithIds(datas);
+            if (writeToFile){
+
+            }
+
+        } catch (Exception e) {
         }
     }
 
+    @SuppressWarnings("Duplicates")
     private void runSingleQuery(String query, boolean similarWords) {
+        boolean writeToFile = writeResultsToFileCheckBox.isSelected();
+        boolean entities = showEntitiesCheckBox.isSelected();
+        if (dictionary == null) {
+            try {
+                loadDictionaryToMemory(outputPath);
+            } catch (Exception e) {
+                AlertBox.display("", "No dictionary file!");
+            }
+        }
+        Searcher searcher = new Searcher(generateDocsFiles(), similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
+        ArrayList<DocumentDataToView> answer = searcher.search(query,entities);
+        this.showResultsWithoutIds(answer);
+        if (writeToFile) {
+
+        }
 
     }
 
-    private HashMap<String,String> getDocNoAndEntitiesResultsForQuery(String query, boolean similarWords) {
-        return null;
+    private void showResultsWithoutIds(ArrayList<DocumentDataToView> answer) {
+        Stage stage = new Stage();
+        TableView tableView = new TableView();
+
+        TableColumn<String, DocumentDataToView> docNoCol = new TableColumn("DocNo");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("docNo"));
+        TableColumn<String, DocumentDataToView> dateCol = new TableColumn("Doc Date");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("date"));
+        TableColumn<String, DocumentDataToView> entitiesCol = new TableColumn("Entities");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
+
+        tableView.getColumns().add(docNoCol);
+        if (showDateCheckBox.isSelected())
+            tableView.getColumns().add(dateCol);
+        if (showEntitiesCheckBox.isSelected())
+            tableView.getColumns().add(entitiesCol);
+
+        for (int i = 0; i < answer.size(); i++) {
+            tableView.getItems().add(answer.get(i));
+        }
+        VBox vbox = new VBox(tableView);
+        Scene scene = new Scene(vbox);
+        stage.setScene(scene);
+        stage.show();
     }
+
+    @SuppressWarnings("Duplicates")
+    private void showResultsWithIds(ArrayList<QueryIDDocDataToView> answer) {
+        Stage stage = new Stage();
+        TableView tableView = new TableView();
+
+
+        TableColumn<String, QueryIDDocDataToView> queryIdCol = new TableColumn("QueryId");
+        queryIdCol.setCellValueFactory(new PropertyValueFactory<>("queryID"));
+        TableColumn<String, QueryIDDocDataToView> docNoCol = new TableColumn("DocNo");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("docNo"));
+        TableColumn<String, QueryIDDocDataToView> dateCol = new TableColumn("Doc Date");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("date"));
+        TableColumn<String, QueryIDDocDataToView> entitiesCol = new TableColumn("Entities");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
+
+        tableView.getColumns().add(queryIdCol);
+        tableView.getColumns().add(docNoCol);
+        if (showDateCheckBox.isSelected())
+            tableView.getColumns().add(dateCol);
+        if (showEntitiesCheckBox.isSelected())
+            tableView.getColumns().add(entitiesCol);
+
+        for (int i = 0; i < answer.size(); i++) {
+            tableView.getItems().add(answer.get(i));
+        }
+        VBox vbox = new VBox(tableView);
+        Scene scene = new Scene(vbox);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    private HashSet<String> generateStopWords() {
+        try {
+            return ProgramStarter.readStopWords(inputPath + "\\05 stop_words");
+        } catch (Exception e) {
+            AlertBox.display("", "Stop words file not found!");
+            return null;
+        }
+
+    }
+
+    private ArrayList<String> generateDocsFiles() {
+        ArrayList<String> output = new ArrayList<>();
+        String stemRelatedFolder = getStemRelatedFolderForDocFiles(stemCheckBox.isSelected());
+
+        for (int i = 0; i < 6; i++) {
+            String docFilePath = outputPath + "\\" + stemRelatedFolder + "\\DocsFiles\\docFile" + i;
+            output.add(docFilePath);
+        }
+        return output;
+    }
+
+    private String getStemRelatedFolderForDocFiles(boolean selected) {
+        if (selected)
+            return "stemOur";
+        return "noStemOur";
+    }
+
 
     /**
      * loads doctionary from outputPath, according to stemming box
+     *
      * @param outputPath
      */
     private void loadDictionaryToMemory(String outputPath) {
-        boolean isWithStemming = stemCheckBox.isSelected();
-        DictionaryFileHandler dfh = new DictionaryFileHandler(new Dictionary());
-        this.dictionary = dfh.readFromFile(outputPath, isWithStemming);
-        System.out.println("loaded");
+        try {
+            boolean isWithStemming = stemCheckBox.isSelected();
+            DictionaryFileHandler dfh = new DictionaryFileHandler(new Dictionary());
+            this.dictionary = dfh.readFromFile(outputPath, isWithStemming);
+            System.out.println("loaded");
+        } catch (Exception e) {
+            AlertBox.display("", "No dictionary in memory!");
+        }
     }
 
     /**
@@ -248,18 +401,15 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         TableView tableView = new TableView();
         TableColumn<String, TermCounterPair> termCol = new TableColumn("Term");
         termCol.setCellValueFactory(new PropertyValueFactory<>("termStr"));
-        TableColumn<Integer, TermCounterPair> countCol= new TableColumn("Count");
+        TableColumn<Integer, TermCounterPair> countCol = new TableColumn("Count");
         countCol.setCellValueFactory(new PropertyValueFactory<>("count"));
 
         tableView.getColumns().add(termCol);
         tableView.getColumns().add(countCol);
 
-        for (Map.Entry<Term, CountAndPointerDicValue> entry : dictionary.dictionaryTable.entrySet())
-        {
-            tableView.getItems().add(new TermCounterPair(entry.getKey().getData(),entry.getValue().getTotalCount()));
+        for (Map.Entry<Term, CountAndPointerDicValue> entry : dictionary.dictionaryTable.entrySet()) {
+            tableView.getItems().add(new TermCounterPair(entry.getKey().getData(), entry.getValue().getTotalCount()));
         }
-
-
 
 
         VBox vbox = new VBox(tableView);
@@ -271,21 +421,20 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     /**
      * delete info from dictionary if files exists
+     *
      * @param outputPath
      */
     private void reset(String outputPath) {
         File index = new File(outputPath);
         String[] entries = index.list();
-        if (entries==null)
-        {
-            AlertBox.display("","Nothing to delete!");
+        if (entries == null) {
+            AlertBox.display("", "Nothing to delete!");
             return;
         }
         for (String s : entries) {
             File currentFile = new File(index.getPath(), s);
-            if (!currentFile.exists())
-            {
-                AlertBox.display("","Nothing to delete!");
+            if (!currentFile.exists()) {
+                AlertBox.display("", "Nothing to delete!");
                 return;
             }
             currentFile.delete();
@@ -311,3 +460,5 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         launch(args);
     }
 }
+
+

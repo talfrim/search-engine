@@ -22,11 +22,10 @@ public class FindTermData {
     public String findLine(String path, String entityVal) {
         try {
             BufferedReader reader = new BufferedReader(new FileReader(path));
-            Pattern pattern = Pattern.compile(entityVal);
             String ansLine = reader.readLine();
             while (ansLine != null) {
                 String [] splitter = bracket.split(ansLine);
-                if(pattern.matcher(splitter[0]).matches()){
+                if(splitter[0].equals(entityVal)){
                     reader.close();
                     return ansLine;
                 }

@@ -1,4 +1,6 @@
-package HandleSearch.DocDataHolder;
+package HandleSearch.DocDataHolders;
+
+import TermsAndDocs.Terms.Term;
 
 import java.util.ArrayList;
 
@@ -6,19 +8,19 @@ import java.util.ArrayList;
  * this class purpose is to hold all the necessary data required from a file
  * in order to calculate it's rank (score) for a given query
  */
-public class DocNecessaryData {
+public class DocRankData {
     private String docNo;
-    private ArrayList<String> queryWords;
-    private ArrayList<String> similarWords;
+    private ArrayList<Term> queryWords;
+    private ArrayList<Term> similarWords;
     private ArrayList<Integer> queryWordsTfs;
     private ArrayList<Integer> similarWordsTfs;
     private ArrayList<Integer> queryWordsDfs;
     private ArrayList<Integer> similarWordsDfs;
     private int lengthOfDoc;
-    private ArrayList<String> docHeaderStrings;
+    private ArrayList<Term> docHeaderStrings;
     private String docDate;
 
-     public DocNecessaryData(String docNo){
+     public DocRankData(String docNo){
          this.docNo = docNo;
          this.docHeaderStrings = new ArrayList<>();
          this.queryWords = new ArrayList<>();
@@ -36,7 +38,7 @@ public class DocNecessaryData {
      * @param tf
      * @param df
      */
-     public void addQueryWordData(String queryWord, int tf, int df){
+     public void addQueryWordData(Term queryWord, int tf, int df){
          this.queryWords.add(queryWord);
          this.queryWordsTfs.add(tf);
          this.queryWordsDfs.add(df);
@@ -49,7 +51,7 @@ public class DocNecessaryData {
      * @param tf
      * @param df
      */
-    public void addSimilarQueryWordData(String similarWord, int tf, int df){
+    public void addSimilarQueryWordData(Term similarWord, int tf, int df){
         this.similarWords.add(similarWord);
         this.similarWordsTfs.add(tf);
         this.similarWordsDfs.add(df);
@@ -67,17 +69,17 @@ public class DocNecessaryData {
      * setter for doc's header
      * @param docHeaderStrings
      */
-    public void setDocHeaderStrings(ArrayList<String> docHeaderStrings) {
+    public void setDocHeaderStrings(ArrayList<Term> docHeaderStrings) {
         this.docHeaderStrings = docHeaderStrings;
     }
 
     //getters for all of this class fields:
 
-    public ArrayList<String> getQueryWords() {
+    public ArrayList<Term> getQueryWords() {
         return queryWords;
     }
 
-    public ArrayList<String> getSimilarWords() {
+    public ArrayList<Term> getSimilarWords() {
         return similarWords;
     }
 
@@ -101,7 +103,7 @@ public class DocNecessaryData {
         return lengthOfDoc;
     }
 
-    public ArrayList<String> getDocHeaderStrings() {
+    public ArrayList<Term> getDocHeaderStrings() {
         return docHeaderStrings;
     }
 

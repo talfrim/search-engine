@@ -3,7 +3,6 @@ package OuputFiles;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import IndexerAndDictionary.PostingFilePointer;
-import TermsAndDocs.Terms.RegularTerm;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 
@@ -15,7 +14,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -78,7 +76,8 @@ public class DictionaryFileHandler {
             dictionaryPath = dictionaryPath + "\\sDic";
         else
             dictionaryPath = dictionaryPath + "\\nsDic";
-        try (BufferedReader br = new BufferedReader(new FileReader(dictionaryPath))) {
+        try  {
+            BufferedReader br = new BufferedReader(new FileReader(dictionaryPath));
             String line;
             int totalCount = -1;
             while ((line = br.readLine()) != null) {
@@ -98,7 +97,7 @@ public class DictionaryFileHandler {
                 dictionary.add(term, dicValue);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
         }
         return this.dictionary;
     }
