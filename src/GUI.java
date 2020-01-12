@@ -293,6 +293,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     }
 
+    @SuppressWarnings("Duplicates")
     private void showResultsWithoutIds(ArrayList<DocumentDataToView> answer) {
         Stage stage = new Stage();
         TableView tableView = new TableView();
@@ -312,6 +313,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
         for (int i = 0; i < answer.size(); i++) {
             tableView.getItems().add(answer.get(i));
+            System.out.println(answer.get(i).getDocNo());
         }
         VBox vbox = new VBox(tableView);
         Scene scene = new Scene(vbox);
@@ -354,10 +356,11 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         try {
             return ProgramStarter.readStopWords(inputPath + "\\05 stop_words");
         } catch (Exception e) {
-            AlertBox.display("", "Stop words file not found!");
-            return null;
+            AlertBox.display("", "Stop words file not found, default stop words file will be used");
+            try { return ProgramStarter.readStopWords("data\\05 stop_words"); } //default path
+            catch (Exception ourE) {ourE.printStackTrace();}
         }
-
+        return new HashSet<>();
     }
 
     private ArrayList<String> generateDocsFiles() {
@@ -380,7 +383,6 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     /**
      * loads doctionary from outputPath, according to stemming box
-     *
      * @param outputPath
      */
     private void loadDictionaryToMemory(String outputPath) {
@@ -444,6 +446,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         Parse.deleteStatics();
         Dictionary.deleteMutex();
         Indexer.deleteDictionary();
+        dictionary=null;
     }
 
     /**
