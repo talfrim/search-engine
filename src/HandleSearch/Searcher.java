@@ -141,6 +141,7 @@ public class Searcher {
      */
     private void getDocsData(ArrayList<Pair<Term, String>> termPostingData,
                              HashMap<String, DocRankData> hashChecker, int recognizer) {
+        DocumentFileHandler dfh = new DocumentFileHandler();
         for (int p = 0; p < termPostingData.size(); p++) {
             Term currentTerm = termPostingData.get(p).getKey();
             String currentTermData = termPostingData.get(p).getValue();
@@ -161,8 +162,10 @@ public class Searcher {
                 DocRankData currentDocData = hashChecker.get(currentDocNo);
                 if(currentDocData == null){
                     //reading doc's line of data from the doc's file
-                    DocumentFileHandler dfh = new DocumentFileHandler();
+                    long start = System.currentTimeMillis();
                     String docData = dfh.searchDocInFiles(currentDocNo, this.docsPath);
+                    long end = System.currentTimeMillis();
+                    System.out.println(end - start);
                     String[] splitterData = splitByDotCom.split(docData);
                     //initializing doc's fields
                     currentDocData = new DocRankData(currentDocNo);

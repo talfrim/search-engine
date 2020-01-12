@@ -159,6 +159,10 @@ public class ProgramStarter {
         if (!fileTooCheck.exists()) {
             fileTooCheck.mkdir();
         }
+        File [] files= fileTooCheck.listFiles();
+        for (File f : files){
+            f.delete();
+        }
 
     }
 

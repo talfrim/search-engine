@@ -9,18 +9,17 @@ import java.util.regex.Pattern;
  * using it's ID (docNo)
  */
 public class FindDocData implements Runnable {
-    private static Pattern splitByDotCom= Pattern.compile("[\\;]");
     private BufferedReader reader;
     private String docNo;
     private String docData;
 
-    public FindDocData(BufferedReader reader, String docNo) {
+    protected FindDocData(BufferedReader reader, String docNo) {
         this.reader = reader;
         this.docNo = docNo;
         this.docData = null;
     }
 
-    public String getDocData() {
+    protected String getDocData() {
         return docData;
     }
 
@@ -34,9 +33,17 @@ public class FindDocData implements Runnable {
         try {
             line = reader.readLine();
             while (line != null) {
-                String [] postSplit = splitByDotCom.split(line);
-                if(postSplit[0].equals(docNo)) {
+                String check = "";
+                int i = 0;
+                char ch = line.charAt(i);
+                while (ch != ';'){
+                    check += ch;
+                    i++;
+                    ch = line.charAt(i);
+                }
+                if(check.equals(docNo)) {
                     this.docData = line;
+                    reader.close();
                     return;
                 }
                 line = reader.readLine();
