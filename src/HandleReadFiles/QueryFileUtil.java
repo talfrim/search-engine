@@ -53,12 +53,20 @@ public class QueryFileUtil {
                     //idTextMap.put(num, title + " " + desc);
                     //idTextMap.put(num, title + " " + ((title.charAt(0)>='A'&&title.charAt(0)<='Z') ? title.toLowerCase() : "") ); //to lower case only for titles starting with capital
                     //add lower case to capitals
-                    String[] strings = title.split(" ");
-                    for (int i = 0; i < strings.length; i++) {
-                        if (partOfEntity(i, strings))
-                            title = title + " " + strings[i].toLowerCase();
+                    String query =title + " " + desc;
+                    //entities as lower case too
+                    String[] queryStrings = title.split(" ");
+                    for (int i = 0; i < queryStrings.length; i++) {
+                        if (partOfEntity(i, queryStrings))
+                            query = query + " " + queryStrings[i].toLowerCase();
                     }
-                    idTextMap.put(num, title);
+                    queryStrings = desc.split(" ");
+                    for (int i = 0; i < queryStrings.length; i++) {
+                        if (partOfEntity(i, queryStrings))
+                            query = query + " " + queryStrings[i].toLowerCase();
+                    }
+
+                    idTextMap.put(num, query);
                     desc = "";
                 }
             }
@@ -70,9 +78,11 @@ public class QueryFileUtil {
     }
 
     private static boolean partOfEntity(int i, String[] strings) {
+        if (strings[i].length()==0)
+            return false; //not a word
         if (!(strings[i].charAt(0) >= 'A' && strings[i].charAt(0) <= 'Z'))
             return false;
-        if (i != 0)
+        if (i != 0 && !(strings[i-1].length()==0))
             if (strings[i - 1].charAt(0) >= 'A' && strings[i - 1].charAt(0) <= 'Z')
                 return true;
         if (i != strings.length - 1)

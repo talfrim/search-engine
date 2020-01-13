@@ -2,6 +2,8 @@ package HandleSearch;
 
 import HandleSearch.DocDataHolders.DocRankData;
 import HandleSearch.DocDataHolders.DocumentDataToView;
+import HandleSearch.datamuse.DatamuseQuery;
+import HandleSearch.datamuse.JSONParse;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import OuputFiles.DocumentFile.DocumentFileObject;
@@ -12,8 +14,6 @@ import TermsAndDocs.Terms.RegularTerm;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 import com.medallia.word2vec.Word2VecModel;
-import HandleSearch.datamuse.DatamuseQuery;
-import HandleSearch.datamuse.JSONParse;
 import javafx.util.Pair;
 
 import java.io.File;
