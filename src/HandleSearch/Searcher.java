@@ -152,7 +152,7 @@ public class Searcher {
 
                 //if it's the first time we get that doc we need to create instance of DocNecessaryData the keeps that doc data
                 DocRankData currentDocData = hashChecker.get(currentDocNo);
-                if(currentDocData == null){
+                if(currentDocData == null && recognizer == 0){
                     //reading doc's line of data from the doc's file
                     String docData = DocumentFileObject.getInstance().docsHolder.get(currentDocNo);
                     String[] splitterData = splitByDotCom.split(docData);
@@ -167,7 +167,8 @@ public class Searcher {
                     currentDocData.addQueryWordData(currentTerm, termTf, termDf);
                 }
                 else{
-                    currentDocData.addSimilarQueryWordData(currentTerm, termTf, termDf);
+                    if(currentDocData != null)
+                        currentDocData.addSimilarQueryWordData(currentTerm, termTf, termDf);
                 }
             }
         }
