@@ -42,7 +42,9 @@ public class QueryFileUtil {
                     line = reader.nextLine();
                 }
                 if(reader.hasNextLine()) {
-                    idTextMap.put(num, title + " " + desc);
+                    //idTextMap.put(num, title + " " + desc);
+                    //idTextMap.put(num, title + " " + ((title.charAt(0)>='A'&&title.charAt(0)<='Z') ? title.toLowerCase() : "") ); //to lower case only for titles starting with capital
+                    idTextMap.put(num, title);
                     desc = "";
                 }
             }

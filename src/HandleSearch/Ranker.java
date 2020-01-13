@@ -30,18 +30,20 @@ public class Ranker {
      * The percentage given to the bm25 functions when scoring with the different parameters
      * The reat goes to cos similarity, is the word in the header, etc...
      */
-    private final double weightOfBM25 = 0.60;
+    private final double weightOfBM25 = 0.9;
 
 
     /**
      * k1 parameter for bm25
      */
-    private double k1 = 2;
+    //2
+    private double k1 = 1.8;
 
     /**
      * b parameter for bm25
      */
-    private double b = 0.75;
+    //0.8
+    private double b = 0.865;
 
     /**
      * This is the number of documents in the corpus
@@ -149,7 +151,9 @@ public class Ranker {
      * @return idf of given df, based on {@code numOfDocs} field
      */
     private double getIdf(int df) {
-        return (Math.log(numOfDocs/df)) / Math.log(2);
+        //return ((Math.log(numOfDocs/df)) / Math.log(2));
+        return ((Math.log(numOfDocs/df)) / Math.log(2)) + 1;
+
     }
 
 

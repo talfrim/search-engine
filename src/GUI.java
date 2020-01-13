@@ -247,7 +247,6 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     @SuppressWarnings("Duplicates")
     private void runQueriesFromFile(String path, boolean similarWords) {
-        showResultsWithIds(new ArrayList<>());
         try {
             HashMap<String, String> queries = QueryFileUtil.extractQueries(path);
             boolean writeToFile = writeResultsToFileCheckBox.isSelected();
@@ -271,9 +270,9 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
                 x++;
             }
             if (writeToFile) {
-                path = resultFileTextField.getText()+"\\"+resultFileName;
+                path = resultFileTextField.getText() + "\\" + resultFileName + ".txt";
                 try {
-                    File toCreateFile =new File(path);
+                    File toCreateFile = new File(path);
                     if (toCreateFile.exists())
                         toCreateFile.delete();
                     toCreateFile.createNewFile(); //create empty file
@@ -281,15 +280,16 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
                     BufferedWriter bw = new BufferedWriter(fw);
                     for (int i = 0; i < datas.size(); i++) {
                         String queryId = datas.get(i).getQueryID();
-                        if(queryId.charAt(queryId.length() - 1) == ' ')
+                        if (queryId.charAt(queryId.length() - 1) == ' ')
                             queryId = queryId.substring(0, queryId.length() - 1);
-                        bw.append(queryId + " " + 0 + " " + datas.get(i).getDocNo() + " " + "1" + " " + "42.23" + " " + "mt" + "\n");
+                        bw.append(queryId + " " + 0 + " " + datas.get(i).getDocNo() + " " + "1" + " " + "1.1" + " " + "mt");
                         bw.newLine();
                     }
                     bw.close();
                 } catch (Exception e) {
                 }
             }
+            showResultsWithIds(datas);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -312,16 +312,16 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         this.showResultsWithoutIds(answer);
         if (writeToFile) {
             String qId = "000";
-            String path = resultFileTextField.getText()+"\\"+resultFileName;
+            String path = resultFileTextField.getText() + "\\" + resultFileName + ".txt";
             try {
-                File toCreateFile =new File(path);
+                File toCreateFile = new File(path);
                 if (toCreateFile.exists())
                     toCreateFile.delete();
                 toCreateFile.createNewFile(); //create empty file
                 FileWriter fw = new FileWriter(path, true);
                 BufferedWriter bw = new BufferedWriter(fw);
                 for (int i = 0; i < answer.size(); i++) {
-                    bw.append(qId + " " + 0 + " " + answer.get(i).getDocNo() + " " + "1" + " " + "42.23" + " " + "mt" + "\n");
+                    bw.append(qId + " " + 0 + " " + answer.get(i).getDocNo() + " " + "1" + " " + "1.1" + " " + "mt" + "\n");
                     bw.newLine();
                 }
                 bw.close();
