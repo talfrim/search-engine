@@ -6,7 +6,7 @@ import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import OuputFiles.DocumentFile.DocumentFileHandler;
 import OuputFiles.DocumentFile.DocumentFileObject;
-import OuputFiles.PostingFile.FindTermData;
+import OuputFiles.PostingFile.FindTermsData;
 import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.CapsTerm;
 import TermsAndDocs.Terms.RegularTerm;
@@ -63,12 +63,12 @@ public class Searcher {
         if(isSemantic)
             semanticallyCloseWords = getSemanticallyCloseWords(queryL);
         //parsing the words of the query and semantically close words so they would fit to the dictionary && posting file terms
-        ArrayList<Term> queryTerms = parseQueryAndHeader(queryL);
-        ArrayList<Term> semanticTerms = parseQueryAndHeader(semanticallyCloseWords);
+        ArrayList<TermDocPair> queryTerms = parseQueryAndHeader(queryL);
+        ArrayList<TermDocPair> semanticTerms = parseQueryAndHeader(semanticallyCloseWords);
 
-        //finding the posting data for each term
-        ArrayList<Pair<Term, String>> queryTermPostingData = getPostData(queryTerms);
-        ArrayList<Pair<Term, String>> semanticTermPostingData = getPostData(semanticTerms);
+        //finding the posting data line for each term
+        ArrayList<Pair<TermDocPair, String>> queryTermPostingData = getPostData(queryTerms);
+        ArrayList<Pair<TermDocPair, String>> semanticTermPostingData = getPostData(semanticTerms);
 
         //keeping all of the doc's relevant data for the ranker calculation
         HashMap<String, DocRankData> hashChecker = new HashMap<>();
@@ -131,11 +131,11 @@ public class Searcher {
      * @param termPostingData
      * @return
      */
-    private void getDocsData(ArrayList<Pair<Term, String>> termPostingData,
+    private void getDocsData(ArrayList<Pair<TermDocPair, String>> termPostingData,
                              HashMap<String, DocRankData> hashChecker, int recognizer) {
-        DocumentFileHandler dfh = new DocumentFileHandler();
         for (int p = 0; p < termPostingData.size(); p++) {
-            Term currentTerm = termPostingData.get(p).getKey();
+            Term currentTerm = termPostingData.get(p).getKey().getTerm();
+            int appearInQuery = termPostingData.get(p).getKey().getCounter();
             String currentTermData = termPostingData.get(p).getValue();
             //finding df of current term
             ArrayList<Object> dfAndString = findDf(currentTermData);
@@ -164,11 +164,11 @@ public class Searcher {
                 }
                 //adding info for the doc info holder in the hash about the current term
                 if(recognizer == 0){
-                    currentDocData.addQueryWordData(currentTerm, termTf, termDf);
+                    currentDocData.addQueryWordData(new Pair<>(currentTerm, appearInQuery), termTf, termDf);
                 }
                 else{
                     if(currentDocData != null)
-                        currentDocData.addSimilarQueryWordData(currentTerm, termTf, termDf);
+                        currentDocData.addSimilarQueryWordData(new Pair<>(currentTerm, appearInQuery), termTf, termDf);
                 }
             }
         }
@@ -201,8 +201,12 @@ public class Searcher {
         //set the header of doc - we need to parse the header in order to get additional hits in the Ranker
         String currentHeader = splitter[5];
         ArrayList<String> inputHeaderForParse = splitBySpaceToArrayList(currentHeader);
-        ArrayList<Term> parsedHeader = parseQueryAndHeader(inputHeaderForParse);
-        currentDocData.setDocHeaderStrings(parsedHeader);
+        ArrayList<TermDocPair> parsedHeader = parseQueryAndHeader(inputHeaderForParse);
+        ArrayList<Pair<Term, Integer>> headerToSet = new ArrayList<>();
+        for(int i = 0; i < parsedHeader.size(); i++){
+            headerToSet.add(new Pair<>(parsedHeader.get(i).getTerm(), parsedHeader.get(i).getCounter()));
+        }
+        currentDocData.setDocHeaderStrings(headerToSet);
     }
 
     /**
@@ -246,32 +250,52 @@ public class Searcher {
      * @return array list of all the terms as keys and their data in post file (String) as value
      * (if exists !!!)
      */
-    private ArrayList<Pair<Term, String>> getPostData(ArrayList<Term> terms) {
-        ArrayList<Pair<Term, String>> termPostingData = new ArrayList<>();
-        FindTermData finder = new FindTermData();
-        for (Term currentTerm : terms){
+    private ArrayList<Pair<TermDocPair, String>> getPostData(ArrayList<TermDocPair> terms) {
+        HashMap<String, ArrayList<Pair<TermDocPair, String>>> pathDivide = new HashMap<>();
+        ArrayList<Pair<TermDocPair, String>> result = new ArrayList<>();
+
+        for (TermDocPair currentEntry : terms){
+            Term currentTerm = currentEntry.getTerm();
             CountAndPointerDicValue dicVal = dictionary.get(currentTerm);
             if(dicVal != null){
                 String path = dicVal.getPointer().getFileStr();
-                String termLine;
-                if(currentTerm instanceof CapsTerm)
-                    termLine = finder.findLine(path, currentTerm.getData().toLowerCase());
+                if(pathDivide.get(path) == null){
+                    pathDivide.put(path, new ArrayList<>());
+                }
+                ArrayList<Pair<TermDocPair, String>> listRequest = pathDivide.get(path);
+                if(currentTerm instanceof CapsTerm) {
+                    listRequest.add(new Pair<>(currentEntry, currentTerm.getData().toLowerCase()));
+                }
                 else
-                    termLine = finder.findLine(path, currentTerm.getData());
-
-                termPostingData.add(new Pair<>(currentTerm, termLine));
+                    listRequest.add(new Pair<>(currentEntry, currentTerm.getData()));
             }
             else if(currentTerm instanceof CapsTerm){
                 currentTerm = new RegularTerm(currentTerm.getData().toLowerCase());
+                currentEntry.setTerm(currentTerm);
                 dicVal = dictionary.get(currentTerm);
                 if(dicVal != null){
                     String path = dicVal.getPointer().getFileStr();
-                    String termLine = finder.findLine(path, currentTerm.getData());
-                    termPostingData.add(new Pair<>(currentTerm, termLine));
+                    if(pathDivide.get(path) == null){
+                        pathDivide.put(path, new ArrayList<>());
+                    }
+                    ArrayList<Pair<TermDocPair, String>> listRequest = pathDivide.get(path);
+                    listRequest.add(new Pair<>(currentEntry, currentTerm.getData()));
                 }
             }
         }
-        return termPostingData;
+        for (Map.Entry<String, ArrayList<Pair<TermDocPair, String>>> entry : pathDivide.entrySet()){
+            ArrayList<Pair<TermDocPair, String>> termsInPost = entry.getValue();
+            Collections.sort(termsInPost, new Comparator<Pair<TermDocPair, String>>() {
+                @Override
+                public int compare(Pair<TermDocPair, String> o1, Pair<TermDocPair, String> o2) {
+                    return o1.getValue().compareTo(o2.getValue());
+                }
+            });
+            FindTermsData findTermsData = new FindTermsData();
+            result.addAll(findTermsData.searchAllTermsInPostFile(entry.getKey(), entry.getValue()));
+        }
+
+        return result;
     }
 
 
@@ -279,14 +303,12 @@ public class Searcher {
      * parsing the query's words so we'll get hit in the dictionary
      * @param query
      */
-    private ArrayList<Term> parseQueryAndHeader(ArrayList<String> query) {
+    private ArrayList<TermDocPair> parseQueryAndHeader(ArrayList<String> query) {
         SearcherParse sp = new SearcherParse(this.stopWords, this.isStemm);
         HashMap<Term, TermDocPair> hash= sp.parseForSearcher(query);
-        ArrayList<Term> queryTerms = new ArrayList<>();
+        ArrayList<TermDocPair> queryTerms = new ArrayList<>();
         for (Map.Entry<Term, TermDocPair> entry : hash.entrySet()) {
-            for (int i = 0; i < entry.getValue().getCounter(); i++) {
-                queryTerms.add(entry.getKey());
-            }
+            queryTerms.add(entry.getValue());
         }
         return queryTerms;
     }
