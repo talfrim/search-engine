@@ -27,10 +27,7 @@ import javafx.stage.Stage;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
 
 public class GUI extends Application implements EventHandler<ActionEvent> {
@@ -265,10 +262,16 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
                 int x = 0;
                 for (DocumentDataToView docData : queryAnswers) {
                     datas.add(new QueryIDDocDataToView(entry.getKey(), docData.getDocNo(), docData.getDate(), docData.getEntities()));
+                    x++;
                 }
                 System.out.println(x);
-                x++;
             }
+            Collections.sort(datas, new Comparator<QueryIDDocDataToView>() {
+                @Override
+                public int compare(QueryIDDocDataToView o1, QueryIDDocDataToView o2) {
+                    return o1.getQueryID().compareTo(o2.getQueryID());
+                }
+            });
             if (writeToFile) {
                 path = resultFileTextField.getText() + "\\" + resultFileName + ".txt";
                 try {
@@ -285,6 +288,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
                         bw.append(queryId + " " + 0 + " " + datas.get(i).getDocNo() + " " + "1" + " " + "1.1" + " " + "mt");
                         bw.newLine();
                     }
+                    System.out.println("All Wriiten to file.");
                     bw.close();
                 } catch (Exception e) {
                 }

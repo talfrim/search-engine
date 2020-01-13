@@ -37,7 +37,8 @@ public class Ranker {
      * k1 parameter for bm25
      */
     //2
-    private double k1 = 1.8;
+    //1.8 best 119
+    private double k1 = 1.2;
 
     /**
      * b parameter for bm25
@@ -72,8 +73,8 @@ public class Ranker {
         double output;
         if (!isSemantic) {
             output = weightOfBM25*getBM25Rank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs(),docRankData.getLengthOfDoc())
-                    + 0.05*getTermsInHeaderScore(docRankData.getQueryWords(),docRankData.getDocHeaderStrings())
-                    +(1-0.05-weightOfBM25)*getCosSimRank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs());
+                    + 0.1*getTermsInHeaderScore(docRankData.getQueryWords(),docRankData.getDocHeaderStrings())
+                    +(1-0.1-weightOfBM25)*getCosSimRank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs());
         }
         else //with semantics
         output = weightOfOriginalQuery* (weightOfBM25*getBM25Rank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs(),docRankData.getLengthOfDoc())
@@ -152,7 +153,7 @@ public class Ranker {
      */
     private double getIdf(int df) {
         //return ((Math.log(numOfDocs/df)) / Math.log(2));
-        return ((Math.log(numOfDocs/df)) / Math.log(2)) + 1;
+        return ((Math.log(numOfDocs/df)) / Math.log(2));
 
     }
 

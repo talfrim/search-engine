@@ -318,7 +318,7 @@ public class Searcher {
         try {
             Word2VecModel model = Word2VecModel.fromTextFile(new File("data\\model\\word2vec.c.output.model.txt"));
             com.medallia.word2vec.Searcher semanticSearcher = model.forSearch();
-            int numOfResults = 11;
+            int numOfResults = 3;
             for (int i = 0; i < query.size(); i++) {
                 List<com.medallia.word2vec.Searcher.Match> matches = semanticSearcher.getMatches(query.get(i).toLowerCase(), numOfResults);
                 for (com.medallia.word2vec.Searcher.Match match : matches) {
@@ -349,7 +349,7 @@ public class Searcher {
             String initCloseWords = datamuseQuery.findSimilar(word);
             String[] parsedCloseWords = jSONParse.parseWords(initCloseWords);
             addArrayToList(parsedCloseWords, output);
-            if(i == 10)
+            if(i == 2)
                 break;
             i++;
         }
