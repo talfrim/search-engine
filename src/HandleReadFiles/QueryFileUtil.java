@@ -5,8 +5,16 @@ import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Scanner;
 
+/**
+ * This class is responsible for reading queries from queries file
+ */
 public class QueryFileUtil {
 
+    /**
+     *
+     * @param path of query file
+     * @return map of query id and query content
+     */
     public static HashMap<String, String> extractQueries(String path) {
         HashMap<String, String> idTextMap = new HashMap<>();
         String num = "";
@@ -41,16 +49,15 @@ public class QueryFileUtil {
                     desc = desc + " " + line;
                     line = reader.nextLine();
                 }
-                if(reader.hasNextLine()) {
+                if (reader.hasNextLine()) {
                     //idTextMap.put(num, title + " " + desc);
                     //idTextMap.put(num, title + " " + ((title.charAt(0)>='A'&&title.charAt(0)<='Z') ? title.toLowerCase() : "") ); //to lower case only for titles starting with capital
                     //add lower case to capitals
                     String[] strings = title.split(" ");
-                    for (int i = 0; i <strings.length ; i++) {
-                        if (strings[i].charAt(0)>='A'&&strings[i].charAt(0)<='Z')
-                            title=title+strings[i].toLowerCase();
+                    for (int i = 0; i < strings.length; i++) {
+                        if (partOfEntity(i, strings))
+                            title = title + " " + strings[i].toLowerCase();
                     }
-
                     idTextMap.put(num, title);
                     desc = "";
                 }
@@ -60,5 +67,17 @@ public class QueryFileUtil {
             e.printStackTrace();
         }
         return idTextMap;
+    }
+
+    private static boolean partOfEntity(int i, String[] strings) {
+        if (!(strings[i].charAt(0) >= 'A' && strings[i].charAt(0) <= 'Z'))
+            return false;
+        if (i != 0)
+            if (strings[i - 1].charAt(0) >= 'A' && strings[i - 1].charAt(0) <= 'Z')
+                return true;
+        if (i != strings.length - 1)
+            if (strings[i + 1].charAt(0) >= 'A' && strings[i + 1].charAt(0) <= 'Z')
+                return true;
+        return false;
     }
 }

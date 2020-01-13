@@ -1,7 +1,6 @@
 package HandleSearch;
 
 import HandleSearch.DocDataHolders.DocRankData;
-import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.Term;
 import javafx.util.Pair;
 
@@ -26,26 +25,28 @@ public class Ranker {
      * It is slitted by two for the BM25 an the TFIDF ranking methods.
      * 1 minus this value is the percentage given to the semantic similarities words.
      */
-    private final double weightOfOriginalQuery = 0.95;
+    //0.6
+    private final double weightOfOriginalQuery = 0.85;
 
     /**
      * The percentage given to the bm25 functions when scoring with the different parameters
      * The reat goes to cos similarity, is the word in the header, etc...
      */
-    private final double weightOfBM25 = 0.9;
+    private final double weightOfBM25 = 0.6;
 
 
     /**
      * k1 parameter for bm25
      */
     //2
-    //1.8 best 119
+    //1.2 134
     private double k1 = 1.2;
 
     /**
      * b parameter for bm25
      */
     //0.8
+    //0.865 134
     private double b = 0.865;
 
     /**
