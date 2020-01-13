@@ -1,6 +1,7 @@
 package HandleSearch.DocDataHolders;
 
 import TermsAndDocs.Terms.Term;
+import javafx.util.Pair;
 
 import java.util.ArrayList;
 
@@ -10,14 +11,14 @@ import java.util.ArrayList;
  */
 public class DocRankData {
     private String docNo;
-    private ArrayList<Term> queryWords;
-    private ArrayList<Term> similarWords;
+    private ArrayList<Pair<Term, Integer>> queryWords;
+    private ArrayList<Pair<Term, Integer>> similarWords;
     private ArrayList<Integer> queryWordsTfs;
     private ArrayList<Integer> similarWordsTfs;
     private ArrayList<Integer> queryWordsDfs;
     private ArrayList<Integer> similarWordsDfs;
     private int lengthOfDoc;
-    private ArrayList<Term> docHeaderStrings;
+    private ArrayList<Pair<Term, Integer>> docHeaderStrings;
     private String docDate;
 
      public DocRankData(String docNo){
@@ -38,7 +39,7 @@ public class DocRankData {
      * @param tf
      * @param df
      */
-     public void addQueryWordData(Term queryWord, int tf, int df){
+     public void addQueryWordData(Pair<Term, Integer> queryWord, int tf, int df){
          this.queryWords.add(queryWord);
          this.queryWordsTfs.add(tf);
          this.queryWordsDfs.add(df);
@@ -51,7 +52,7 @@ public class DocRankData {
      * @param tf
      * @param df
      */
-    public void addSimilarQueryWordData(Term similarWord, int tf, int df){
+    public void addSimilarQueryWordData(Pair<Term, Integer> similarWord, int tf, int df){
         this.similarWords.add(similarWord);
         this.similarWordsTfs.add(tf);
         this.similarWordsDfs.add(df);
@@ -69,17 +70,17 @@ public class DocRankData {
      * setter for doc's header
      * @param docHeaderStrings
      */
-    public void setDocHeaderStrings(ArrayList<Term> docHeaderStrings) {
+    public void setDocHeaderStrings(ArrayList<Pair<Term, Integer>> docHeaderStrings) {
         this.docHeaderStrings = docHeaderStrings;
     }
 
     //getters for all of this class fields:
 
-    public ArrayList<Term> getQueryWords() {
+    public ArrayList<Pair<Term, Integer>> getQueryWords() {
         return queryWords;
     }
 
-    public ArrayList<Term> getSimilarWords() {
+    public ArrayList<Pair<Term, Integer>> getSimilarWords() {
         return similarWords;
     }
 
@@ -103,7 +104,7 @@ public class DocRankData {
         return lengthOfDoc;
     }
 
-    public ArrayList<Term> getDocHeaderStrings() {
+    public ArrayList<Pair<Term, Integer>> getDocHeaderStrings() {
         return docHeaderStrings;
     }
 
