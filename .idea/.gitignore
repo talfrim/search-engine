@@ -1,4 +1,5 @@
 /workspace.xml
 /misc.xml
-/data
-/out
+/data/*
+/out/*
+/stemOur/*

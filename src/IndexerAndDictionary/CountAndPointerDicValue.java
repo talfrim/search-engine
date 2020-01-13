@@ -53,6 +53,6 @@ public class CountAndPointerDicValue {
 
     @Override
     public String toString() {
-        return totalCount + ";" + pointer.getFileStr();
+        return totalCount + ";" + pointer.getFileStrName();
     }
 }

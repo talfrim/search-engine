@@ -4,8 +4,8 @@ import HandleSearch.DocDataHolders.DocRankData;
 import HandleSearch.DocDataHolders.DocumentDataToView;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
-import IndexerAndDictionary.Indexer;
 import OuputFiles.DocumentFile.DocumentFileHandler;
+import OuputFiles.DocumentFile.DocumentFileObject;
 import OuputFiles.PostingFile.FindTermData;
 import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.CapsTerm;
@@ -13,8 +13,8 @@ import TermsAndDocs.Terms.RegularTerm;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 import com.medallia.word2vec.Word2VecModel;
-import datamuse.DatamuseQuery;
-import datamuse.JSONParse;
+import HandleSearch.datamuse.DatamuseQuery;
+import HandleSearch.datamuse.JSONParse;
 import javafx.util.Pair;
 
 import java.io.File;
@@ -26,9 +26,7 @@ import java.util.regex.Pattern;
  * this class uses the class Ranker for that purpose
  */
 public class Searcher {
-    private ArrayList<String> docsPath;
     private static Pattern stickPattern = Pattern.compile("[\\|]");
-    private static Pattern dfPattern = Pattern.compile("[d][f][\\{]");
     private static Pattern escape = Pattern.compile("[ ]");
     private static Pattern splitByEntities = Pattern.compile("[E][N][T][I][T][I][E][S][:]");
     private static Pattern splitByDotCom = Pattern.compile("[\\;]");
@@ -44,9 +42,7 @@ public class Searcher {
     private boolean isStemm;
     private Dictionary dictionary;
 
-    public Searcher(ArrayList<String> docsPath, boolean isSemantic,
-                    boolean isStemm, Dictionary dictionary, HashSet<String> stopWords) {
-        this.docsPath = docsPath;
+    public Searcher(boolean isSemantic, boolean isStemm, Dictionary dictionary, HashSet<String> stopWords) {
         this.isSemantic = isSemantic;
         this.isStemm = isStemm;
         this.dictionary = dictionary;
@@ -74,20 +70,16 @@ public class Searcher {
         ArrayList<Pair<Term, String>> queryTermPostingData = getPostData(queryTerms);
         ArrayList<Pair<Term, String>> semanticTermPostingData = getPostData(semanticTerms);
 
-        long start = System.currentTimeMillis();
         //keeping all of the doc's relevant data for the ranker calculation
         HashMap<String, DocRankData> hashChecker = new HashMap<>();
         getDocsData(queryTermPostingData, hashChecker, 0);
         getDocsData(semanticTermPostingData, hashChecker, 1);
-        long end = System.currentTimeMillis();
-        System.out.println(end-start);
 
         //ranking every relevant doc
         ArrayList<Pair<String, Double>> keepScores = new ArrayList<>();
         Ranker ranker = new Ranker(this.isSemantic);
         for (Map.Entry<String, DocRankData> entry : hashChecker.entrySet()){
             double score = ranker.rankDocument(entry.getValue());
-            System.out.println(score);
             keepScores.add(new Pair<>(entry.getKey(), score));
         }
         Collections.sort(keepScores, new Comparator<Pair<String, Double>>() {
@@ -125,7 +117,7 @@ public class Searcher {
     private String makeEntitiesString(ArrayList<Term> entities) {
         String ans = "";
         for(Term t : entities){
-            ans += t.getData() + ", ";
+            ans += t.getData() + ";  ";
         }
         if (entities.size() > 0)
             ans = ans.substring(0, ans.length() - 2);
@@ -133,7 +125,7 @@ public class Searcher {
     }
 
     /**
-     * this method is filling every field inside the DocNecessaryData class
+     * this method is filling every field inside the DocRankData class
      * by getting list of terms and their data from the posting file
      * and by finding the data of every doc from the doc's file
      * @param termPostingData
@@ -141,6 +133,7 @@ public class Searcher {
      */
     private void getDocsData(ArrayList<Pair<Term, String>> termPostingData,
                              HashMap<String, DocRankData> hashChecker, int recognizer) {
+        DocumentFileHandler dfh = new DocumentFileHandler();
         for (int p = 0; p < termPostingData.size(); p++) {
             Term currentTerm = termPostingData.get(p).getKey();
             String currentTermData = termPostingData.get(p).getValue();
@@ -161,9 +154,9 @@ public class Searcher {
                 DocRankData currentDocData = hashChecker.get(currentDocNo);
                 if(currentDocData == null){
                     //reading doc's line of data from the doc's file
-                    DocumentFileHandler dfh = new DocumentFileHandler();
-                    String docData = dfh.searchDocInFiles(currentDocNo, this.docsPath);
+                    String docData = DocumentFileObject.getInstance().docsHolder.get(currentDocNo);
                     String[] splitterData = splitByDotCom.split(docData);
+
                     //initializing doc's fields
                     currentDocData = new DocRankData(currentDocNo);
                     initializeDocNecessaryData(currentDocData, splitterData);
@@ -180,6 +173,10 @@ public class Searcher {
         }
     }
 
+    /**
+     * This func returns array containing the docNo and tf of the document
+     * @return
+     */
     private String[] findDocNoAndTf(String docNoTfCurrent) {
         String[] ans = new String[2];
         String[] splitter = splitByDotCom.split(docNoTfCurrent);
@@ -199,9 +196,9 @@ public class Searcher {
         //set the size of doc
         currentDocData.setLengthOfDoc(Integer.parseInt(splitter[1]));
         //set the date of the file
-        currentDocData.setDocDate(splitter[5]);
+        currentDocData.setDocDate(splitter[4]);
         //set the header of doc - we need to parse the header in order to get additional hits in the Ranker
-        String currentHeader = splitter[6];
+        String currentHeader = splitter[5];
         ArrayList<String> inputHeaderForParse = splitBySpaceToArrayList(currentHeader);
         ArrayList<Term> parsedHeader = parseQueryAndHeader(inputHeaderForParse);
         currentDocData.setDocHeaderStrings(parsedHeader);
@@ -337,7 +334,7 @@ public class Searcher {
     }
 
     /**
-     * Using datamuse API to get a list of similar words
+     * Using HandleSearch.datamuse API to get a list of similar words
      *
      * @return ArrayList of similar words
      * @apiNote requires internet connection!
@@ -365,11 +362,8 @@ public class Searcher {
      * @return {@code ArrayList) of the five (if exists) most dominating entities in the doc
      */
     public ArrayList<Term> fiveTopEntities(String docNo) {
-        Dictionary dictionary = Indexer.dictionary;
-
         //finding the doc's properties
-        DocumentFileHandler dfh = new DocumentFileHandler();
-        String docData = dfh.searchDocInFiles(docNo, this.docsPath);
+        String docData = DocumentFileObject.getInstance().docsHolder.get(docNo);
 
         //gets all of the entities in a doc
         String[] splitter = splitByEntities.split(docData);
@@ -415,7 +409,6 @@ public class Searcher {
      * @return array list of scores for each entity
      */
     private ArrayList<Pair<Term, Double>> calculateScores(HashMap<Term, Integer> realEntities, String docNo) {
-        Pattern docNoSplit = Pattern.compile(docNo + ";");
         ArrayList<Pair<Term,Double>> scores = new ArrayList<>();
         for (Map.Entry<Term, Integer> entry : realEntities.entrySet()) {
             Term currentEntity = entry.getKey();

@@ -1,14 +1,13 @@
 package OuputFiles.DocumentFile;
 
-import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.DocumentDateTerm;
 import TermsAndDocs.Terms.Term;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -78,21 +77,19 @@ public class DocumentFileHandler {
 
     /**
      * this method gets String docNo and returns all of the doc's properties from our the docs file via string line
-     * @param docNo
      * @return String line of data
      */
-    public String searchDocInFiles(String docNo, ArrayList<String> docsPath)
+    public ConcurrentHashMap<String, String> extractDocsData(ArrayList<String> docsPath)
     {
         int numOfFiles = 6;
-        ArrayList<FindDocData> answers = new ArrayList<>();
         ExecutorService pool = Executors.newFixedThreadPool(numOfFiles);
 
+        ConcurrentHashMap<String, String> docsHolder = new ConcurrentHashMap<>();
         //using threads to search through different files
         for (int i = 0; i < numOfFiles; i++) {
             try {
                 BufferedReader reader = new BufferedReader(new FileReader(docsPath.get(i)));
-                FindDocData findDocData = new FindDocData(reader, docNo);
-                answers.add(findDocData);
+                FindDocData findDocData = new FindDocData(reader, docsHolder);
                 pool.execute(findDocData);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -105,12 +102,7 @@ public class DocumentFileHandler {
             e.printStackTrace();
         }
         //returning the line of doc's data
-        for(FindDocData finder : answers) {
-            if(finder.getDocData() != null) {
-                return finder.getDocData();
-            }
-        }
-        return null;
+        return docsHolder;
     }
 
 }
