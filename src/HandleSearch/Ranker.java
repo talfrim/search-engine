@@ -93,7 +93,7 @@ public class Ranker {
         double[] queryVector = new double[tfs.size()];
         for (int i = 0; i < queryVector.length; i++) {
             queryVector[i] = 1;
-        } 
+        }
 
         double[] docVector = new double[tfs.size()];
         for (int i = 0; i < docVector.length; i++) {
