@@ -15,7 +15,7 @@ public class QueryFileUtil {
         try {
             File queryFile = new File(path);
             if (!queryFile.exists())
-                System.out.println("no");
+                System.out.println("no query file");
             Scanner reader = new Scanner(queryFile);
             String line = reader.nextLine();
             while (reader.hasNextLine()) {
@@ -44,6 +44,13 @@ public class QueryFileUtil {
                 if(reader.hasNextLine()) {
                     //idTextMap.put(num, title + " " + desc);
                     //idTextMap.put(num, title + " " + ((title.charAt(0)>='A'&&title.charAt(0)<='Z') ? title.toLowerCase() : "") ); //to lower case only for titles starting with capital
+                    //add lower case to capitals
+                    String[] strings = title.split(" ");
+                    for (int i = 0; i <strings.length ; i++) {
+                        if (strings[i].charAt(0)>='A'&&strings[i].charAt(0)<='Z')
+                            title=title+strings[i].toLowerCase();
+                    }
+
                     idTextMap.put(num, title);
                     desc = "";
                 }
