@@ -244,6 +244,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
     @SuppressWarnings("Duplicates")
     private void runQueriesFromFile(String path, boolean similarWords) {
+        long time1 = System.currentTimeMillis();
         try {
             HashMap<String, String> queries = QueryFileUtil.extractQueries(path);
             boolean writeToFile = writeResultsToFileCheckBox.isSelected();
@@ -294,6 +295,8 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
                 }
             }
             showResultsWithIds(datas);
+            long time2 = System.currentTimeMillis();
+            System.out.println("Total time: " + (time2-time1));
 
         } catch (Exception e) {
             e.printStackTrace();

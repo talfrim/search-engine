@@ -2,9 +2,10 @@ package HandleSearch;
 
 import HandleSearch.DocDataHolders.DocRankData;
 import HandleSearch.DocDataHolders.DocumentDataToView;
+import HandleSearch.datamuse.DatamuseQuery;
+import HandleSearch.datamuse.JSONParse;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
-import OuputFiles.DocumentFile.DocumentFileHandler;
 import OuputFiles.DocumentFile.DocumentFileObject;
 import OuputFiles.PostingFile.FindTermsData;
 import TermsAndDocs.Pairs.TermDocPair;
@@ -13,8 +14,6 @@ import TermsAndDocs.Terms.RegularTerm;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 import com.medallia.word2vec.Word2VecModel;
-import HandleSearch.datamuse.DatamuseQuery;
-import HandleSearch.datamuse.JSONParse;
 import javafx.util.Pair;
 
 import java.io.File;
@@ -96,6 +95,7 @@ public class Searcher {
             String currentDocNo = goodResults.get(i).getDocNo();
             String currentDocDate = hashChecker.get(currentDocNo).getDocDate();
             goodResults.get(i).setDate(currentDocDate);
+            System.out.println("Score: " + keepScores.get(i).getValue());
         }
 
         //adding top 5 entities for the user to view
