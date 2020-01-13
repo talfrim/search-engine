@@ -30,7 +30,12 @@ public class ProgramStarter {
         ThreadPoolExecutor executor;
         String[][] arrays = initWorkersArrays(folderFiles);
         executor = (ThreadPoolExecutor) Executors.newFixedThreadPool((Runtime.getRuntime().availableProcessors() + 2));
-        HashSet<String> stopWords = readStopWords(inputPath + "\\05 stop_words");
+        HashSet<String> stopWords = null;
+        try {
+            stopWords = readStopWords(inputPath + "\\05 stop_words");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         ArrayList<String> docsPath = new ArrayList<>();
         for (int i = 0; i < arrays.length; i++) {
             String[] readFilesPath = arrays[i];//302-305
@@ -74,11 +79,10 @@ public class ProgramStarter {
      * @param path
      * @return hashSet of all the sth given stop words
      */
-    public static HashSet<String> readStopWords(String path) {
+    public static HashSet<String> readStopWords(String path) throws IOException {
         File file = new File(path);
         BufferedReader br;
         HashSet<String> stopWords = new HashSet<>();
-        try {
             br = new BufferedReader(new FileReader(file + ".txt"));
             String st;
             while ((st = br.readLine()) != null) {
@@ -86,12 +90,6 @@ public class ProgramStarter {
                     stopWords.add(st);
             }
             br.close();
-        } catch (FileNotFoundException e) {
-
-            //e.printStackTrace();
-        } catch (IOException e) {
-            //e.printStackTrace();
-        }
         return stopWords;
     }
 

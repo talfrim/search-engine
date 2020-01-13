@@ -42,6 +42,7 @@ public class FindTermsData {
                 ansLine = reader.readLine();
             }
             reader.close();
+            return termAndLine;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {

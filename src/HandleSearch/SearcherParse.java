@@ -1,6 +1,7 @@
 package HandleSearch;
 
 import HandleParse.Parse;
+import TermsAndDocs.Docs.Document;
 import TermsAndDocs.Pairs.TermDocPair;
 import TermsAndDocs.Terms.Term;
 
@@ -24,7 +25,7 @@ public class SearcherParse extends Parse {
         }
         initialWords = handlePunctuation(initialWords);
         initialWords = deleteEmptyWords(initialWords);
-        parseTextToList(initialWords, pairs, null, "Query");
+        parseTextToList(initialWords, pairs, new Document("", ""), "Query");
         return pairs;
     }
 
