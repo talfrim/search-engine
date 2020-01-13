@@ -4,7 +4,6 @@ import HandleSearch.DocDataHolders.DocRankData;
 import HandleSearch.DocDataHolders.DocumentDataToView;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
-import OuputFiles.DocumentFile.DocumentFileHandler;
 import OuputFiles.DocumentFile.DocumentFileObject;
 import OuputFiles.PostingFile.FindTermsData;
 import TermsAndDocs.Pairs.TermDocPair;
@@ -41,12 +40,17 @@ public class Searcher {
     private boolean isSemantic;
     private boolean isStemm;
     private Dictionary dictionary;
+    private boolean withEntities;
+    private ArrayList<String> queries;
 
-    public Searcher(boolean isSemantic, boolean isStemm, Dictionary dictionary, HashSet<String> stopWords) {
+    public Searcher(boolean isSemantic, boolean isStemm, Dictionary dictionary, HashSet<String> stopWords
+            , ArrayList<String> queries, boolean withEntities) {
         this.isSemantic = isSemantic;
         this.isStemm = isStemm;
         this.dictionary = dictionary;
         this.stopWords = stopWords;
+        this.withEntities = withEntities;
+        this.queries = queries;
     }
 
     /**
@@ -54,60 +58,94 @@ public class Searcher {
      * it receives words and search for the documents which contains this term
      * then we calculate for each of the relevant docs it's rank
      * we are returning at most 50 relevant docs by order
-     * @param query
      * @return
      */
-    public ArrayList<DocumentDataToView> search(String query, boolean withEntities){
-        ArrayList<String> queryL = splitBySpaceToArrayList(query);
-        ArrayList<String> semanticallyCloseWords = new ArrayList<>();
-        if(isSemantic)
-            semanticallyCloseWords = getSemanticallyCloseWords(queryL);
-        //parsing the words of the query and semantically close words so they would fit to the dictionary && posting file terms
-        ArrayList<TermDocPair> queryTerms = parseQueryAndHeader(queryL);
-        ArrayList<TermDocPair> semanticTerms = parseQueryAndHeader(semanticallyCloseWords);
-
-        //finding the posting data line for each term
-        ArrayList<Pair<TermDocPair, String>> queryTermPostingData = getPostData(queryTerms);
-        ArrayList<Pair<TermDocPair, String>> semanticTermPostingData = getPostData(semanticTerms);
-
-        //keeping all of the doc's relevant data for the ranker calculation
-        HashMap<String, DocRankData> hashChecker = new HashMap<>();
-        getDocsData(queryTermPostingData, hashChecker, 0);
-        getDocsData(semanticTermPostingData, hashChecker, 1);
-
-        //ranking every relevant doc
-        ArrayList<Pair<String, Double>> keepScores = new ArrayList<>();
-        Ranker ranker = new Ranker(this.isSemantic);
-        for (Map.Entry<String, DocRankData> entry : hashChecker.entrySet()){
-            double score = ranker.rankDocument(entry.getValue());
-            keepScores.add(new Pair<>(entry.getKey(), score));
+    public ArrayList<DocumentDataToView>[] search(){
+        ArrayList<DocumentDataToView> [] allAnswers = new ArrayList[queries.size()];
+        ArrayList<TermDocPair> []allQueryTerms = new ArrayList[allAnswers.length];
+        ArrayList<TermDocPair> []allSemanticTerms = new ArrayList[allAnswers.length];
+        for(int i = 0; i < allAnswers.length; i++){
+            allQueryTerms[i] = new ArrayList<>();
+            allSemanticTerms[i] = new ArrayList<>();
         }
-        Collections.sort(keepScores, new Comparator<Pair<String, Double>>() {
-            @Override
-            public int compare(Pair<String, Double> o1, Pair<String, Double> o2) {
-                return o2.getValue().compareTo(o1.getValue());
+
+        for (int k = 0; k < allAnswers.length; k++) {
+            String query = queries.get(k);
+            ArrayList<String> queryL = splitBySpaceToArrayList(query);
+            ArrayList<String> semanticallyCloseWords = new ArrayList<>();
+            if(isSemantic)
+                semanticallyCloseWords = getSemanticallyCloseWords(queryL);
+            //parsing the words of the query and semantically close words so they would fit to the dictionary && posting file terms
+            allQueryTerms[k].addAll(parseQueryAndHeader(queryL, k));
+            allSemanticTerms[k].addAll(parseQueryAndHeader(semanticallyCloseWords, k));
+        }
+        //returns two hash maps that contains the entire post data for each term in the queries or the similar words
+        HashMap<Term, String> postDataForAllQueries = getPostData(allQueryTerms);
+        HashMap<Term, String> postDataForAllSimilar = getPostData(allSemanticTerms);
+
+        for (int k = 0; k < allAnswers.length; k++) {
+            System.out.println("done with query: " + k);
+            //finding the posting data line for each term
+            ArrayList<Pair<TermDocPair, String>> queryTermPostingData = findPostDataInHash(allQueryTerms[k], postDataForAllQueries);
+            ArrayList<Pair<TermDocPair, String>> semanticTermPostingData = findPostDataInHash(allSemanticTerms[k], postDataForAllSimilar);
+
+            //keeping all of the doc's relevant data for the ranker calculation
+            HashMap<String, DocRankData> hashChecker = new HashMap<>();
+            getDocsData(queryTermPostingData, hashChecker, 0);
+            getDocsData(semanticTermPostingData, hashChecker, 1);
+
+            //ranking every relevant doc
+            ArrayList<Pair<String, Double>> keepScores = new ArrayList<>();
+            Ranker ranker = new Ranker(this.isSemantic);
+            for (Map.Entry<String, DocRankData> entry : hashChecker.entrySet()){
+                double score = ranker.rankDocument(entry.getValue());
+                keepScores.add(new Pair<>(entry.getKey(), score));
             }
-        });
+            Collections.sort(keepScores, new Comparator<Pair<String, Double>>() {
+                @Override
+                public int compare(Pair<String, Double> o1, Pair<String, Double> o2) {
+                    return o2.getValue().compareTo(o1.getValue());
+                }
+            });
 
-        //keeping only the docNo and date of the best 50 docs
-        ArrayList<DocumentDataToView> goodResults = new ArrayList<>();
-        for (int i = 0; (i < 50) && (i < keepScores.size()) ; i++) {
-            goodResults.add(new DocumentDataToView(keepScores.get(i).getKey()));
-            String currentDocNo = goodResults.get(i).getDocNo();
-            String currentDocDate = hashChecker.get(currentDocNo).getDocDate();
-            goodResults.get(i).setDate(currentDocDate);
+            //keeping only the docNo and date of the best 50 docs
+            ArrayList<DocumentDataToView> goodResults = new ArrayList<>();
+            for (int i = 0; (i < 50) && (i < keepScores.size()) ; i++) {
+                goodResults.add(new DocumentDataToView(keepScores.get(i).getKey()));
+                String currentDocNo = goodResults.get(i).getDocNo();
+                String currentDocDate = hashChecker.get(currentDocNo).getDocDate();
+                goodResults.get(i).setDate(currentDocDate);
+            }
+
+            //adding top 5 entities for the user to view
+            if(withEntities) {
+                for (int i = 0; i < goodResults.size(); i++) {
+                    ArrayList<Term> entities = fiveTopEntities(goodResults.get(i).getDocNo());
+                    String strEntities = makeEntitiesString(entities);
+                    goodResults.get(i).setEntities(strEntities);
+                }
+            }
+            allAnswers[k] = goodResults;
         }
 
-        //adding top 5 entities for the user to view
-        if(withEntities) {
-            for (int i = 0; i < goodResults.size(); i++) {
-                ArrayList<Term> entities = fiveTopEntities(goodResults.get(i).getDocNo());
-                String strEntities = makeEntitiesString(entities);
-                goodResults.get(i).setEntities(strEntities);
+        return allAnswers;
+    }
+
+    /**
+     * this method builds array list of the relevant terms and theirs post line data
+     * @param allRelavantTerms
+     * @param postDic
+     * @return termsDocAndPost
+     */
+    private ArrayList<Pair<TermDocPair, String>> findPostDataInHash(ArrayList<TermDocPair> allRelavantTerms,
+                                                                    HashMap<Term, String> postDic) {
+        ArrayList<Pair<TermDocPair, String>> termsDocAndPost = new ArrayList<>();
+        for(TermDocPair termDoc : allRelavantTerms){
+            if(postDic.containsKey(termDoc.getTerm())){
+                termsDocAndPost.add(new Pair<>(termDoc, postDic.get(termDoc.getTerm())));
             }
         }
-
-        return goodResults;
+        return termsDocAndPost;
     }
 
     /**
@@ -201,7 +239,7 @@ public class Searcher {
         //set the header of doc - we need to parse the header in order to get additional hits in the Ranker
         String currentHeader = splitter[5];
         ArrayList<String> inputHeaderForParse = splitBySpaceToArrayList(currentHeader);
-        ArrayList<TermDocPair> parsedHeader = parseQueryAndHeader(inputHeaderForParse);
+        ArrayList<TermDocPair> parsedHeader = parseQueryAndHeader(inputHeaderForParse, 111);
         ArrayList<Pair<Term, Integer>> headerToSet = new ArrayList<>();
         for(int i = 0; i < parsedHeader.size(); i++){
             headerToSet.add(new Pair<>(parsedHeader.get(i).getTerm(), parsedHeader.get(i).getCounter()));
@@ -247,52 +285,63 @@ public class Searcher {
 
     /**
      * @param terms
-     * @return array list of all the terms as keys and their data in post file (String) as value
+     * @return HashMap that contains for each term it received it's post line data
      * (if exists !!!)
      */
-    private ArrayList<Pair<TermDocPair, String>> getPostData(ArrayList<TermDocPair> terms) {
-        HashMap<String, ArrayList<Pair<TermDocPair, String>>> pathDivide = new HashMap<>();
-        ArrayList<Pair<TermDocPair, String>> result = new ArrayList<>();
+    private HashMap<Term, String> getPostData(ArrayList<TermDocPair>[] terms) {
+        HashMap<String, HashMap<Term, String>> pathDivide = new HashMap<>();
+        HashMap<Term, String> result = new HashMap<>();
+        ArrayList<Pair<Term, String>> tempResult = new ArrayList<>();
 
-        for (TermDocPair currentEntry : terms){
-            Term currentTerm = currentEntry.getTerm();
-            CountAndPointerDicValue dicVal = dictionary.get(currentTerm);
-            if(dicVal != null){
-                String path = dicVal.getPointer().getFileStr();
-                if(pathDivide.get(path) == null){
-                    pathDivide.put(path, new ArrayList<>());
-                }
-                ArrayList<Pair<TermDocPair, String>> listRequest = pathDivide.get(path);
-                if(currentTerm instanceof CapsTerm) {
-                    listRequest.add(new Pair<>(currentEntry, currentTerm.getData().toLowerCase()));
-                }
-                else
-                    listRequest.add(new Pair<>(currentEntry, currentTerm.getData()));
-            }
-            else if(currentTerm instanceof CapsTerm){
-                currentTerm = new RegularTerm(currentTerm.getData().toLowerCase());
-                currentEntry.setTerm(currentTerm);
-                dicVal = dictionary.get(currentTerm);
+        for (int i = 0; i < terms.length; i++) {
+            for (TermDocPair currentEntry : terms[i]){
+                Term currentTerm = currentEntry.getTerm();
+                CountAndPointerDicValue dicVal = dictionary.get(currentTerm);
                 if(dicVal != null){
                     String path = dicVal.getPointer().getFileStr();
                     if(pathDivide.get(path) == null){
-                        pathDivide.put(path, new ArrayList<>());
+                        pathDivide.put(path, new HashMap<>());
                     }
-                    ArrayList<Pair<TermDocPair, String>> listRequest = pathDivide.get(path);
-                    listRequest.add(new Pair<>(currentEntry, currentTerm.getData()));
+                    HashMap<Term, String> listRequest = pathDivide.get(path);
+                    if(currentTerm instanceof CapsTerm) {
+                        listRequest.put(currentTerm, currentTerm.getData().toLowerCase());
+                    }
+                    else
+                        listRequest.put(currentTerm, currentTerm.getData());
+                }
+                else if(currentTerm instanceof CapsTerm){
+                    currentTerm = new RegularTerm(currentTerm.getData().toLowerCase());
+                    currentEntry.setTerm(currentTerm);
+                    dicVal = dictionary.get(currentTerm);
+                    if(dicVal != null){
+                        String path = dicVal.getPointer().getFileStr();
+                        if(pathDivide.get(path) == null){
+                            pathDivide.put(path, new HashMap<>());
+                        }
+                        HashMap<Term, String> listRequest = pathDivide.get(path);
+                        listRequest.put(currentTerm, currentTerm.getData());
+                    }
                 }
             }
         }
-        for (Map.Entry<String, ArrayList<Pair<TermDocPair, String>>> entry : pathDivide.entrySet()){
-            ArrayList<Pair<TermDocPair, String>> termsInPost = entry.getValue();
-            Collections.sort(termsInPost, new Comparator<Pair<TermDocPair, String>>() {
+
+        for (Map.Entry<String, HashMap<Term, String>> entry : pathDivide.entrySet()){
+            HashMap<Term, String> termsInPost = entry.getValue();
+            ArrayList<Pair<Term, String>> termsInPostToSort = new ArrayList<>();
+            for(Map.Entry<Term, String> termAndString : termsInPost.entrySet()){
+                termsInPostToSort.add(new Pair<>(termAndString.getKey(),termAndString.getValue()));
+            }
+            Collections.sort(termsInPostToSort, new Comparator<Pair<Term, String>>() {
                 @Override
-                public int compare(Pair<TermDocPair, String> o1, Pair<TermDocPair, String> o2) {
+                public int compare(Pair<Term, String> o1, Pair<Term, String> o2) {
                     return o1.getValue().compareTo(o2.getValue());
                 }
             });
             FindTermsData findTermsData = new FindTermsData();
-            result.addAll(findTermsData.searchAllTermsInPostFile(entry.getKey(), entry.getValue()));
+            tempResult.addAll(findTermsData.searchAllTermsInPostFile(entry.getKey(), termsInPostToSort));
+        }
+        for(Pair<Term, String> entry : tempResult){
+            result.put(entry.getKey(), entry.getValue());
         }
 
         return result;
@@ -302,10 +351,11 @@ public class Searcher {
     /**
      * parsing the query's words so we'll get hit in the dictionary
      * @param query
+     * @param k
      */
-    private ArrayList<TermDocPair> parseQueryAndHeader(ArrayList<String> query) {
+    public ArrayList<TermDocPair> parseQueryAndHeader(ArrayList<String> query, int k) {
         SearcherParse sp = new SearcherParse(this.stopWords, this.isStemm);
-        HashMap<Term, TermDocPair> hash= sp.parseForSearcher(query);
+        HashMap<Term, TermDocPair> hash= sp.parseForSearcher(query, k);
         ArrayList<TermDocPair> queryTerms = new ArrayList<>();
         for (Map.Entry<Term, TermDocPair> entry : hash.entrySet()) {
             queryTerms.add(entry.getValue());

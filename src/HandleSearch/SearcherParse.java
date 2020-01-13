@@ -14,7 +14,7 @@ public class SearcherParse extends Parse {
         super(stopWords, toStem);
     }
 
-    public HashMap<Term, TermDocPair> parseForSearcher(ArrayList<String> query){
+    public HashMap<Term, TermDocPair> parseForSearcher(ArrayList<String> query, int k){
         String text =getTextFromQuery(query);
         text = deleteTitlesFunc(text);
         query = splitBySpaceToArrayList(text);
@@ -25,7 +25,7 @@ public class SearcherParse extends Parse {
         }
         initialWords = handlePunctuation(initialWords);
         initialWords = deleteEmptyWords(initialWords);
-        parseTextToList(initialWords, pairs, new Document("", ""), "Query");
+        parseTextToList(initialWords, pairs, new Document(""+k, ""), "Query");
         return pairs;
     }
 

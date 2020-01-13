@@ -245,7 +245,13 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
     @SuppressWarnings("Duplicates")
     private void runQueriesFromFile(String path, boolean similarWords) {
         try {
-            HashMap<String, String> queries = QueryFileUtil.extractQueries(path);
+            HashMap<String, String> queriesHash = QueryFileUtil.extractQueries(path);
+            ArrayList<String> queries = new ArrayList<>();
+            ArrayList<String> queriesID = new ArrayList<>();
+            for (Map.Entry<String, String> entry : queriesHash.entrySet()){
+                queries.add(entry.getValue());
+                queriesID.add(entry.getKey());
+            }
             boolean writeToFile = writeResultsToFileCheckBox.isSelected();
             boolean entities = showEntitiesCheckBox.isSelected();
             if (dictionary == null) {
@@ -255,16 +261,14 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
                     AlertBox.display("", "No dictionary file!");
                 }
             }
-            Searcher searcher = new Searcher(similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
+            Searcher searcher = new Searcher(similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords(), queries, entities);
             ArrayList<QueryIDDocDataToView> datas = new ArrayList<>();
-            for (Map.Entry<String, String> entry : queries.entrySet()) {
-                ArrayList<DocumentDataToView> queryAnswers = searcher.search(entry.getValue(), entities);
-                int x = 0;
-                for (DocumentDataToView docData : queryAnswers) {
-                    datas.add(new QueryIDDocDataToView(entry.getKey(), docData.getDocNo(), docData.getDate(), docData.getEntities()));
-                    x++;
+            ArrayList<DocumentDataToView>[] queryAnswers = searcher.search();
+            for (int i = 0; i < queryAnswers.length; i++) {
+                for (DocumentDataToView docData : queryAnswers[i]) {
+                    datas.add(new QueryIDDocDataToView(queriesID.get(i), docData.getDocNo(), docData.getDate(), docData.getEntities()));
                 }
-                System.out.println(x);
+                System.out.println(i);
             }
             Collections.sort(datas, new Comparator<QueryIDDocDataToView>() {
                 @Override
@@ -311,9 +315,11 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
                 AlertBox.display("", "No dictionary file!");
             }
         }
-        Searcher searcher = new Searcher(similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords());
-        ArrayList<DocumentDataToView> answer = searcher.search(query, entities);
-        this.showResultsWithoutIds(answer);
+        ArrayList<String> queryList = new ArrayList<>();
+        queryList.add(query);
+        Searcher searcher = new Searcher(similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords(), queryList, entities);
+        ArrayList<DocumentDataToView>[] answer = searcher.search();
+        this.showResultsWithoutIds(answer[0]);
         if (writeToFile) {
             String qId = "000";
             String path = resultFileTextField.getText() + "\\" + resultFileName + ".txt";
@@ -324,8 +330,8 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
                 toCreateFile.createNewFile(); //create empty file
                 FileWriter fw = new FileWriter(path, true);
                 BufferedWriter bw = new BufferedWriter(fw);
-                for (int i = 0; i < answer.size(); i++) {
-                    bw.append(qId + " " + 0 + " " + answer.get(i).getDocNo() + " " + "1" + " " + "1.1" + " " + "mt" + "\n");
+                for (int i = 0; i < answer[0].size(); i++) {
+                    bw.append(qId + " " + 0 + " " + answer[0].get(i).getDocNo() + " " + "1" + " " + "1.1" + " " + "mt" + "\n");
                     bw.newLine();
                 }
                 bw.close();

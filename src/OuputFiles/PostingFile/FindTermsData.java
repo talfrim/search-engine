@@ -26,9 +26,9 @@ public class FindTermsData {
      * @param requestList
      * @return
      */
-    public ArrayList<Pair<TermDocPair, String>> searchAllTermsInPostFile(String path, ArrayList<Pair<TermDocPair, String>> requestList) {
+    public ArrayList<Pair<Term, String>> searchAllTermsInPostFile(String path, ArrayList<Pair<Term, String>> requestList) {
         try {
-            ArrayList<Pair<TermDocPair, String>> termAndLine = new ArrayList<>();
+            ArrayList<Pair<Term, String>> termAndLine = new ArrayList<>();
             BufferedReader reader = new BufferedReader(new FileReader(path));
             String ansLine = reader.readLine();
             int i = 0;
