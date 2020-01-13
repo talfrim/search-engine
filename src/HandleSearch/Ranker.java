@@ -24,7 +24,7 @@ public class Ranker {
      * It is slitted by two for the BM25 an the TFIDF ranking methods.
      * 1 minus this value is the percentage given to the semantic similarities words.
      */
-    private final double weightOfOriginalQuery = 0.65;
+    private final double weightOfOriginalQuery = 0.95;
 
     /**
      * The percentage given to the bm25 functions when scoring with the different parameters
@@ -49,12 +49,12 @@ public class Ranker {
     /**
      * This is the number of documents in the corpus
      */
-    public final int numOfDocs = 472531;
+    public final int numOfDocs = 472522;
 
     /**
      * This is the avg doc length
      */
-    public final int avgDocLength = 250; //TODO
+    public final int avgDocLength = 250;
 
     /**
      * @param isSemantic field mentioning if we should take into account the result of the semantic connection
@@ -68,35 +68,36 @@ public class Ranker {
      * original query, and if {@code isSemantic} is true with the semantic close words also.
      * @return ranking
      */
-    public double rankDocument(DocRankData docRankData)
-    {
+    public double rankDocument(DocRankData docRankData) {
         double output;
+        double bM25ofQuery = getBM25Rank(docRankData.getQueryWordsTfs(), docRankData.getQueryWordsDfs(), docRankData.getLengthOfDoc());
+        double termsInHeaderScoreQuery = getTermsInHeaderScore(docRankData.getQueryWords(), docRankData.getDocHeaderStrings());
+        double cosSimRankQuery = getCosSimRank(docRankData.getQueryWordsTfs(), docRankData.getQueryWordsDfs());
+        double queryScore = weightOfBM25 * bM25ofQuery + 0.05 * termsInHeaderScoreQuery + (1 - 0.05 - weightOfBM25) * cosSimRankQuery;
         if (!isSemantic) {
-            output = weightOfBM25*getBM25Rank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs(),docRankData.getLengthOfDoc())
-                    + 0.1*getTermsInHeaderScore(docRankData.getQueryWords(),docRankData.getDocHeaderStrings())
-                    +(1-0.1-weightOfBM25)*getCosSimRank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs());
+            output = queryScore;
+        } else { //with semantics
+            double bM25OfSemantic = getBM25Rank(docRankData.getSimilarWordsTfs(), docRankData.getSimilarWordsDfs(), docRankData.getLengthOfDoc());
+            double termsInHeaderScoreSimilar = 0.05 * getTermsInHeaderScore(docRankData.getSimilarWords(), docRankData.getDocHeaderStrings());
+            double cossimSimilar = getCosSimRank(docRankData.getSimilarWordsTfs(), docRankData.getSimilarWordsDfs());
+
+            output = weightOfOriginalQuery * queryScore
+                    + (1 - weightOfOriginalQuery) * (weightOfBM25 * bM25OfSemantic + 0.05 * termsInHeaderScoreSimilar + (1 - 0.05 - weightOfBM25) * cossimSimilar);
         }
-        else //with semantics
-        output = weightOfOriginalQuery* (weightOfBM25*getBM25Rank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs(),docRankData.getLengthOfDoc())
-                + 0.05*getTermsInHeaderScore(docRankData.getQueryWords(),docRankData.getDocHeaderStrings())
-                +(1-0.05-weightOfBM25)*getCosSimRank(docRankData.getQueryWordsTfs(),docRankData.getQueryWordsDfs()))
-                +(1-weightOfOriginalQuery)* (weightOfBM25*getBM25Rank(docRankData.getSimilarWordsTfs(),docRankData.getSimilarWordsDfs(),docRankData.getLengthOfDoc())
-                + 0.05*getTermsInHeaderScore(docRankData.getSimilarWords(),docRankData.getDocHeaderStrings())
-                +(1-0.05-weightOfBM25)*getCosSimRank(docRankData.getSimilarWordsTfs(),docRankData.getSimilarWordsDfs()));
         return output;
     }
 
     private double getCosSimRank(ArrayList<Integer> tfs, ArrayList<Integer> dfs) {
         double[] queryVector = new double[tfs.size()];
-        for (int i=0; i<queryVector.length; i++) {
+        for (int i = 0; i < queryVector.length; i++) {
             queryVector[i] = 1;
         }
 
         double[] docVector = new double[tfs.size()];
-        for (int i=0; i<docVector.length; i++) {
+        for (int i = 0; i < docVector.length; i++) {
             docVector[i] = tfs.get(i) * getIdf(dfs.get(i));
         }
-        return cosineSimilarity(queryVector,docVector);
+        return cosineSimilarity(queryVector, docVector);
     }
 
     private double cosineSimilarity(double[] vectorA, double[] vectorB) {
@@ -113,15 +114,20 @@ public class Ranker {
     }
 
     private double getBM25Rank(ArrayList<Integer> tfs, ArrayList<Integer> dfs, int lengthOfDoc) {
-        double output=0;
-        for (int i=0; i< tfs.size(); i++) {
-            output += getBM25ForOneTerm(tfs.get(i),dfs.get(i),lengthOfDoc);
+        double output = 0;
+        for (int i = 0; i < tfs.size(); i++) {
+            output += getBM25ForOneTerm(tfs.get(i), dfs.get(i), lengthOfDoc);
         }
         return output;
     }
 
     private double getBM25ForOneTerm(Integer tf, Integer df, int lengthOfDoc) {
-        return getIdf(df) * ((tf)*(k1+1)) / (tf+k1*(1-b+b*(lengthOfDoc/avgDocLength)));
+        double numerator = (tf) * (k1 + 1);
+        double denominatorFraction = (double)lengthOfDoc / (double)avgDocLength;
+        double denominator = (tf + k1 * (1 - b + b * (denominatorFraction)));
+        double fraction = numerator/denominator;
+        double result = getIdf(df) * fraction;
+        return result;
     }
 
     /**
@@ -130,21 +136,22 @@ public class Ranker {
      * @return 1 if header contains un-stemmed version of the term supllied, else false
      */
     private int isTermInHeader(Term term, ArrayList<Term> docHeaderStrings) {
-        return docHeaderStrings.contains(term) ? 1 : 0 ;
+        return docHeaderStrings.contains(term) ? 1 : 0;
     }
 
     /**
      * returns the percentage of the words from the query that are in the documents header
+     *
      * @param terms
      * @param docHeaderStrings
      * @return the percentage of the words from the query that are in the documents header
      */
     private double getTermsInHeaderScore(ArrayList<Term> terms, ArrayList<Term> docHeaderStrings) {
-        int counter =0;
-        for (Term term: terms) {
-            counter += isTermInHeader(term,docHeaderStrings); //this will give us the number of terms from the list which are in the header
+        int counter = 0;
+        for (Term term : terms) {
+            counter += isTermInHeader(term, docHeaderStrings); //this will give us the number of terms from the list which are in the header
         }
-        return ((double) counter)/((double)terms.size());
+        return ((double) counter) / ((double) terms.size());
     }
 
     /**
@@ -153,12 +160,9 @@ public class Ranker {
      */
     private double getIdf(int df) {
         //return ((Math.log(numOfDocs/df)) / Math.log(2));
-        return ((Math.log(numOfDocs/df)) / Math.log(2));
-
+        double idf=(Math.log10((numOfDocs-df+0.5) / ((df+0.5)))) / Math.log10(2);
+        return idf;
     }
-
-
-
 
 
 }
