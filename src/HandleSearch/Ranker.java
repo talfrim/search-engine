@@ -91,6 +91,7 @@ public class Ranker {
     }
 
     private double getCosSimRank(ArrayList<Pair<Term, Integer>> termsCounter, ArrayList<Integer> tfs, ArrayList<Integer> dfs) {
+
         double[] queryVector = new double[tfs.size()];
         for (int i = 0; i < queryVector.length; i++) {
             queryVector[i] = termsCounter.get(i).getValue();
@@ -99,6 +100,9 @@ public class Ranker {
         double[] docVector = new double[tfs.size()];
         for (int i = 0; i < docVector.length; i++) {
             docVector[i] = tfs.get(i) * getIdf(dfs.get(i));
+        }
+        if (queryVector.length==0 || docVector.length==0) {
+            return 0;
         }
         return cosineSimilarity(queryVector, docVector);
     }
@@ -156,10 +160,13 @@ public class Ranker {
      */
     private double getTermsInHeaderScore(ArrayList<Pair<Term, Integer>> terms, ArrayList<Pair<Term, Integer>> docHeaderStrings) {
         int counter = 0;
+        if (terms.size()==0)
+            return 0;
         for (Pair<Term, Integer> pairTerm : terms) {
             counter +=  pairTerm.getValue() * isTermInHeader(pairTerm.getKey(), docHeaderStrings); //this will give us the number of terms from the list which are in the header
         }
-        return ((double) counter) / ((double) terms.size());
+        double score = ((double) counter) / ((double) terms.size());
+        return score;
     }
 
     /**

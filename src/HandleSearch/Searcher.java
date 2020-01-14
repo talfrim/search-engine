@@ -2,6 +2,7 @@ package HandleSearch;
 
 import HandleSearch.DocDataHolders.DocRankData;
 import HandleSearch.DocDataHolders.DocumentDataToView;
+import HandleSearch.Ranker;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import OuputFiles.DocumentFile.DocumentFileObject;
@@ -437,7 +438,6 @@ public class Searcher {
     public ArrayList<Term> fiveTopEntities(String docNo) {
         //finding the doc's properties
         String docData = DocumentFileObject.getInstance().docsHolder.get(docNo);
-
         //gets all of the entities in a doc
         String[] splitter = splitByEntities.split(docData);
         if (splitter.length == 1)
@@ -445,10 +445,8 @@ public class Searcher {
         String strEntities = splitter[1];
         String[] mayEntitiesWithCount = splitByDotCom.split(strEntities);
         TermBuilder builder = new TermBuilder();
-
         HashMap<Term, Integer> realEntities = new HashMap<>();
         ArrayList<Term> topFive = new ArrayList<>();
-
         HashMap<String, Integer> mayEntries = new HashMap<>();
         for(int i = 0; i < mayEntitiesWithCount.length; i++){
             String currentUnited = mayEntitiesWithCount[i];
@@ -456,7 +454,6 @@ public class Searcher {
             int apperancesInDoc = Integer.parseInt(splited[1]);
             mayEntries.put(splited[0], apperancesInDoc);
         }
-
         //keeping only the right entities
         for (Map.Entry<String, Integer> entry : mayEntries.entrySet()) {
             Term t = builder.buildTerm("EntityTerm", entry.getKey());
@@ -472,8 +469,6 @@ public class Searcher {
             return extractBiggestScore(scores);
         }
     }
-
-
     /**
      * this method is responsible for returning the scores for all the entity terms in a document
      * score is calculated by : ((size of term (num of words)) * (number of appearances in the doc)) / log(appearances in corpus)
