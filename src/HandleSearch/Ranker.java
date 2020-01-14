@@ -144,6 +144,9 @@ public class Ranker {
      */
     private int isTermInHeader(Term term, ArrayList<Pair<Term, Integer>> docHeaderStrings) {
         String termData = term.getData();
+        if(termData.charAt(0) >= 'A' && termData.charAt(0) <= 'Z'){
+            termData = termData.toLowerCase();
+        }
         for(Pair<Term, Integer> termPairCurrent : docHeaderStrings){
             if(termPairCurrent.getKey().getData().contains(termData))
                 return termPairCurrent.getValue();

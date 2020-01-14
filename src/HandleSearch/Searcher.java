@@ -2,7 +2,6 @@ package HandleSearch;
 
 import HandleSearch.DocDataHolders.DocRankData;
 import HandleSearch.DocDataHolders.DocumentDataToView;
-import HandleSearch.Ranker;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import OuputFiles.DocumentFile.DocumentFileObject;
@@ -83,9 +82,7 @@ public class Searcher {
         //returns two hash maps that contains the entire post data for each term in the queries or the similar words
         HashMap<Term, String> postDataForAllQueries = getPostData(allQueryTerms);
         HashMap<Term, String> postDataForAllSimilar = getPostData(allSemanticTerms);
-
         for (int k = 0; k < allAnswers.length; k++) {
-            System.out.println("done with query: " + k);
             //finding the posting data line for each term
             ArrayList<Pair<TermDocPair, String>> queryTermPostingData = findPostDataInHash(allQueryTerms[k], postDataForAllQueries);
             ArrayList<Pair<TermDocPair, String>> semanticTermPostingData = findPostDataInHash(allSemanticTerms[k], postDataForAllSimilar);
@@ -219,10 +216,16 @@ public class Searcher {
      */
     private String[] findDocNoAndTf(String docNoTfCurrent) {
         String[] ans = new String[2];
-        String[] splitter = splitByDotCom.split(docNoTfCurrent);
-
-        ans[0] = splitter[0];//docNo
-        ans[1] = splitter[1].substring(0, splitter[1].length() - 1); //string of Tf value
+        int i = 0;
+        char ch = docNoTfCurrent.charAt(i);
+        String docNo = "";
+        while (ch != ';'){
+            docNo += ch;
+            i++;
+            ch = docNoTfCurrent.charAt(i);
+        }
+        ans[0] = docNo;//docNo
+        ans[1] =docNoTfCurrent.substring(i + 1, docNoTfCurrent.length() - 1); //string of Tf value
         return ans;
     }
 
@@ -240,10 +243,10 @@ public class Searcher {
         //set the header of doc - we need to parse the header in order to get additional hits in the Ranker
         String currentHeader = splitter[5];
         ArrayList<String> inputHeaderForParse = splitBySpaceToArrayList(currentHeader);
-        ArrayList<TermDocPair> parsedHeader = parseQueryAndHeader(inputHeaderForParse, 111);
         ArrayList<Pair<Term, Integer>> headerToSet = new ArrayList<>();
-        for(int i = 0; i < parsedHeader.size(); i++){
-            headerToSet.add(new Pair<>(parsedHeader.get(i).getTerm(), parsedHeader.get(i).getCounter()));
+        for(int i = 0; i < inputHeaderForParse.size(); i++){
+            Term t = new RegularTerm(inputHeaderForParse.get(i).toLowerCase());
+            headerToSet.add(new Pair<>(t, 1));
         }
         currentDocData.setDocHeaderStrings(headerToSet);
     }
