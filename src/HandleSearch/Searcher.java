@@ -2,8 +2,6 @@ package HandleSearch;
 
 import HandleSearch.DocDataHolders.DocRankData;
 import HandleSearch.DocDataHolders.DocumentDataToView;
-import HandleSearch.datamuse.DatamuseQuery;
-import HandleSearch.datamuse.JSONParse;
 import IndexerAndDictionary.CountAndPointerDicValue;
 import IndexerAndDictionary.Dictionary;
 import OuputFiles.DocumentFile.DocumentFileObject;
@@ -14,6 +12,8 @@ import TermsAndDocs.Terms.RegularTerm;
 import TermsAndDocs.Terms.Term;
 import TermsAndDocs.Terms.TermBuilder;
 import com.medallia.word2vec.Word2VecModel;
+import HandleSearch.datamuse.DatamuseQuery;
+import HandleSearch.datamuse.JSONParse;
 import javafx.util.Pair;
 
 import java.io.File;
@@ -82,9 +82,7 @@ public class Searcher {
         //returns two hash maps that contains the entire post data for each term in the queries or the similar words
         HashMap<Term, String> postDataForAllQueries = getPostData(allQueryTerms);
         HashMap<Term, String> postDataForAllSimilar = getPostData(allSemanticTerms);
-
         for (int k = 0; k < allAnswers.length; k++) {
-            System.out.println("done with query: " + k);
             //finding the posting data line for each term
             ArrayList<Pair<TermDocPair, String>> queryTermPostingData = findPostDataInHash(allQueryTerms[k], postDataForAllQueries);
             ArrayList<Pair<TermDocPair, String>> semanticTermPostingData = findPostDataInHash(allSemanticTerms[k], postDataForAllSimilar);
@@ -218,10 +216,16 @@ public class Searcher {
      */
     private String[] findDocNoAndTf(String docNoTfCurrent) {
         String[] ans = new String[2];
-        String[] splitter = splitByDotCom.split(docNoTfCurrent);
-
-        ans[0] = splitter[0];//docNo
-        ans[1] = splitter[1].substring(0, splitter[1].length() - 1); //string of Tf value
+        int i = 0;
+        char ch = docNoTfCurrent.charAt(i);
+        String docNo = "";
+        while (ch != ';'){
+            docNo += ch;
+            i++;
+            ch = docNoTfCurrent.charAt(i);
+        }
+        ans[0] = docNo;//docNo
+        ans[1] =docNoTfCurrent.substring(i + 1, docNoTfCurrent.length() - 1); //string of Tf value
         return ans;
     }
 
@@ -239,10 +243,10 @@ public class Searcher {
         //set the header of doc - we need to parse the header in order to get additional hits in the Ranker
         String currentHeader = splitter[5];
         ArrayList<String> inputHeaderForParse = splitBySpaceToArrayList(currentHeader);
-        ArrayList<TermDocPair> parsedHeader = parseQueryAndHeader(inputHeaderForParse, 111);
         ArrayList<Pair<Term, Integer>> headerToSet = new ArrayList<>();
-        for(int i = 0; i < parsedHeader.size(); i++){
-            headerToSet.add(new Pair<>(parsedHeader.get(i).getTerm(), parsedHeader.get(i).getCounter()));
+        for(int i = 0; i < inputHeaderForParse.size(); i++){
+            Term t = new RegularTerm(inputHeaderForParse.get(i).toLowerCase());
+            headerToSet.add(new Pair<>(t, 1));
         }
         currentDocData.setDocHeaderStrings(headerToSet);
     }
@@ -437,7 +441,6 @@ public class Searcher {
     public ArrayList<Term> fiveTopEntities(String docNo) {
         //finding the doc's properties
         String docData = DocumentFileObject.getInstance().docsHolder.get(docNo);
-
         //gets all of the entities in a doc
         String[] splitter = splitByEntities.split(docData);
         if (splitter.length == 1)
@@ -445,10 +448,8 @@ public class Searcher {
         String strEntities = splitter[1];
         String[] mayEntitiesWithCount = splitByDotCom.split(strEntities);
         TermBuilder builder = new TermBuilder();
-
         HashMap<Term, Integer> realEntities = new HashMap<>();
         ArrayList<Term> topFive = new ArrayList<>();
-
         HashMap<String, Integer> mayEntries = new HashMap<>();
         for(int i = 0; i < mayEntitiesWithCount.length; i++){
             String currentUnited = mayEntitiesWithCount[i];
@@ -456,7 +457,6 @@ public class Searcher {
             int apperancesInDoc = Integer.parseInt(splited[1]);
             mayEntries.put(splited[0], apperancesInDoc);
         }
-
         //keeping only the right entities
         for (Map.Entry<String, Integer> entry : mayEntries.entrySet()) {
             Term t = builder.buildTerm("EntityTerm", entry.getKey());
@@ -472,8 +472,6 @@ public class Searcher {
             return extractBiggestScore(scores);
         }
     }
-
-
     /**
      * this method is responsible for returning the scores for all the entity terms in a document
      * score is calculated by : ((size of term (num of words)) * (number of appearances in the doc)) / log(appearances in corpus)
