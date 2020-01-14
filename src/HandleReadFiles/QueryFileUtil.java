@@ -20,6 +20,7 @@ public class QueryFileUtil {
         String num = "";
         String title = "";
         String desc = "";
+        String narr = "";
         try {
             File queryFile = new File(path);
             if (!queryFile.exists())
@@ -53,12 +54,17 @@ public class QueryFileUtil {
                     //idTextMap.put(num, title + " " + desc);
                     //idTextMap.put(num, title + " " + ((title.charAt(0)>='A'&&title.charAt(0)<='Z') ? title.toLowerCase() : "") ); //to lower case only for titles starting with capital
                     //add lower case to capitals
-                    String query =title + " " + desc;
+                    String query =title + " " + desc + " " + narr;
                     //entities as lower case too
                     String[] queryStrings = title.split(" ");
                     for (int i = 0; i < queryStrings.length; i++) {
                         if (partOfEntity(i, queryStrings))
                             query = query + " " + queryStrings[i].toLowerCase();
+                        String check = queryStrings[i];
+                        if(check.equals("What") || check.equals("Document") || check.equals("document")
+                            || check.equals("Any") || check.equals("Documents")){
+                            query.replace(check, "");
+                        }
                     }
                     queryStrings = desc.split(" ");
                     for (int i = 0; i < queryStrings.length; i++) {
@@ -68,6 +74,7 @@ public class QueryFileUtil {
 
                     idTextMap.put(num, query);
                     desc = "";
+                    narr = "";
                 }
             }
             reader.close();

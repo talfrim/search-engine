@@ -89,8 +89,11 @@ public class Searcher {
 
             //keeping all of the doc's relevant data for the ranker calculation
             HashMap<String, DocRankData> hashChecker = new HashMap<>();
+            long start = System.currentTimeMillis();
             getDocsData(queryTermPostingData, hashChecker, 0);
             getDocsData(semanticTermPostingData, hashChecker, 1);
+            long end = System.currentTimeMillis();
+            System.out.println("time to exe getDocData --> " + (end - start));
 
             //ranking every relevant doc
             ArrayList<Pair<String, Double>> keepScores = new ArrayList<>();
@@ -237,7 +240,13 @@ public class Searcher {
      */
     private void initializeDocNecessaryData(DocRankData currentDocData, String[] splitter) {
         //set the size of doc
-        currentDocData.setLengthOfDoc(Integer.parseInt(splitter[1]));
+        currentDocData.setLengthOfDoc(Integer.parseInt(splitter[0]));
+        //set num of unique terms
+        currentDocData.setNumOfUniqTerms(Integer.parseInt(splitter[1]));
+        //set most common term
+        currentDocData.setMostCommonTerm(splitter[2]);
+        //set most common term count
+        currentDocData.setMaxTf(Integer.parseInt(splitter[3]));
         //set the date of the file
         currentDocData.setDocDate(splitter[4]);
         //set the header of doc - we need to parse the header in order to get additional hits in the Ranker
@@ -245,7 +254,13 @@ public class Searcher {
         ArrayList<String> inputHeaderForParse = splitBySpaceToArrayList(currentHeader);
         ArrayList<Pair<Term, Integer>> headerToSet = new ArrayList<>();
         for(int i = 0; i < inputHeaderForParse.size(); i++){
-            Term t = new RegularTerm(inputHeaderForParse.get(i).toLowerCase());
+            Term t;
+            if(inputHeaderForParse.get(i).length() == 0)
+                continue;
+            if(inputHeaderForParse.get(i).charAt(0) >= 'A' && inputHeaderForParse.get(i).charAt(0) <= 'Z')
+                t = new RegularTerm(inputHeaderForParse.get(i).toLowerCase());
+            else
+                t = new RegularTerm(inputHeaderForParse.get(i));
             headerToSet.add(new Pair<>(t, 1));
         }
         currentDocData.setDocHeaderStrings(headerToSet);

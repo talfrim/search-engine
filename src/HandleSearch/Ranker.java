@@ -26,13 +26,13 @@ public class Ranker {
      * 1 minus this value is the percentage given to the semantic similarities words.
      */
     //0.6
-    private final double weightOfOriginalQuery = 0.85;
+    private final double weightOfOriginalQuery = 0.75;
 
     /**
      * The percentage given to the bm25 functions when scoring with the different parameters
      * The reat goes to cos similarity, is the word in the header, etc...
      */
-    private final double weightOfBM25 = 0.6;
+    private final double weightOfBM25 = 0.8;
 
 
     /**
@@ -73,21 +73,44 @@ public class Ranker {
      */
     public double rankDocument(DocRankData docRankData) {
         double output;
-        double bM25ofQuery = getBM25Rank(docRankData.getQueryWords(), docRankData.getQueryWordsTfs(), docRankData.getQueryWordsDfs(), docRankData.getLengthOfDoc());
+        double bM25ofQuery = getBM25Rank(docRankData.getQueryWords(), docRankData.getQueryWordsTfs(), docRankData.getQueryWordsDfs(), docRankData.getLengthOfDoc(), docRankData.getNumOfUniqTerms());
         double termsInHeaderScoreQuery = getTermsInHeaderScore(docRankData.getQueryWords(), docRankData.getDocHeaderStrings());
         double cosSimRankQuery = getCosSimRank(docRankData.getQueryWords(), docRankData.getQueryWordsTfs(), docRankData.getQueryWordsDfs());
         double queryScore = weightOfBM25 * bM25ofQuery + 0.05 * termsInHeaderScoreQuery + (1 - 0.05 - weightOfBM25) * cosSimRankQuery;
         if (!isSemantic) {
             output = queryScore;
         } else { //with semantics
-            double bM25OfSemantic = getBM25Rank(docRankData.getSimilarWords(), docRankData.getSimilarWordsTfs(), docRankData.getSimilarWordsDfs(), docRankData.getLengthOfDoc());
+            double bM25OfSemantic = getBM25Rank(docRankData.getSimilarWords(), docRankData.getSimilarWordsTfs(), docRankData.getSimilarWordsDfs(), docRankData.getLengthOfDoc(), docRankData.getNumOfUniqTerms());
             double termsInHeaderScoreSimilar = 0.05 * getTermsInHeaderScore(docRankData.getSimilarWords(), docRankData.getDocHeaderStrings());
             double cossimSimilar = getCosSimRank(docRankData.getSimilarWords(), docRankData.getSimilarWordsTfs(), docRankData.getSimilarWordsDfs());
 
             output = weightOfOriginalQuery * queryScore
                     + (1 - weightOfOriginalQuery) * (weightOfBM25 * bM25OfSemantic + 0.05 * termsInHeaderScoreSimilar + (1 - 0.05 - weightOfBM25) * cossimSimilar);
         }
+        if(QueryContainsMaxTerm(docRankData))
+            output += 0.1 * output;
         return output;
+    }
+
+    private boolean QueryContainsMaxTerm(DocRankData docRankData) {
+        ArrayList<Pair<Term, Integer>> queryWords = docRankData.getQueryWords();
+        String mostCommonTerm = docRankData.getMostCommonTerm();
+        for (Pair<Term, Integer> pair : queryWords){
+            if(pair.getKey().getData().contains(mostCommonTerm)){
+                return true;
+            }
+            if(mostCommonTerm.contains(pair.getKey().getData()));
+                return true;
+        }
+        ArrayList<Pair<Term, Integer>> similarWords = docRankData.getSimilarWords();
+        for (Pair<Term, Integer> pair : similarWords){
+            if(pair.getKey().getData().contains(mostCommonTerm)){
+                return true;
+            }
+            if(mostCommonTerm.contains(pair.getKey().getData()));
+            return true;
+        }
+        return false;
     }
 
     private double getCosSimRank(ArrayList<Pair<Term, Integer>> termsCounter, ArrayList<Integer> tfs, ArrayList<Integer> dfs) {
@@ -120,20 +143,25 @@ public class Ranker {
         return scoreCOS;
     }
 
-    private double getBM25Rank(ArrayList<Pair<Term, Integer>> termAndCounter, ArrayList<Integer> tfs, ArrayList<Integer> dfs, int lengthOfDoc) {
+    private double getBM25Rank(ArrayList<Pair<Term, Integer>> termAndCounter, ArrayList<Integer> tfs, ArrayList<Integer> dfs, int lengthOfDoc, int numOfUnique) {
         double output = 0;
         for (int i = 0; i < tfs.size(); i++) {
-            output += termAndCounter.get(i).getValue() * getBM25ForOneTerm(tfs.get(i), dfs.get(i), lengthOfDoc);
+            output += termAndCounter.get(i).getValue() * getBM25ForOneTerm(tfs.get(i), dfs.get(i), lengthOfDoc, numOfUnique);
         }
         return output;
     }
 
-    private double getBM25ForOneTerm(Integer tf, Integer df, int lengthOfDoc) {
+    private double getBM25ForOneTerm(Integer tf, Integer df, int lengthOfDoc, int numOfUnique) {
         double numerator = (tf) * (k1 + 1);
-        double denominatorFraction = (double)lengthOfDoc / (double)avgDocLength;
-        double denominator = (tf + k1 * (1 - b + b * (denominatorFraction)));
-        double fraction = numerator/denominator;
-        double result = getIdf(df) * fraction;
+        double denominatorFraction1 = (double)lengthOfDoc / (double)avgDocLength;
+        double denominatorFraction2 = (double)numOfUnique / (double)avgDocLength;
+        double denominator1 = (tf + k1 * (1 - b + b * (denominatorFraction1)));
+        double denominator2 = (tf + k1 * (1 - b + b * (denominatorFraction2)));
+        double fraction1 = numerator/denominator1;
+        double fraction2 = numerator/denominator2;
+        double result1 = getIdf(df) * fraction1;
+        double result2 = getIdf(df) * fraction2;
+        double result = result1 * 0.8 + result2 * 0.2;
         return result;
     }
 

@@ -18,6 +18,11 @@ public class DocRankData {
     private ArrayList<Integer> queryWordsDfs;
     private ArrayList<Integer> similarWordsDfs;
     private int lengthOfDoc;
+    private int numOfUniqTerms;
+    private int maxTf;
+    private String mostCommonTerm;
+
+
     private ArrayList<Pair<Term, Integer>> docHeaderStrings;
     private String docDate;
 
@@ -114,5 +119,29 @@ public class DocRankData {
 
     public String getDocDate() {
         return docDate;
+    }
+
+    public int getNumOfUniqTerms() {
+        return numOfUniqTerms;
+    }
+
+    public String getMostCommonTerm() {
+        return mostCommonTerm;
+    }
+
+    public void setMostCommonTerm(String mostCommonTerm) {
+        this.mostCommonTerm = mostCommonTerm;
+    }
+
+    public void setNumOfUniqTerms(int numOfUniqTerms) {
+        this.numOfUniqTerms = numOfUniqTerms;
+    }
+
+    public int getMaxTf() {
+        return maxTf;
+    }
+
+    public void setMaxTf(int maxTf) {
+        this.maxTf = maxTf;
     }
 }
