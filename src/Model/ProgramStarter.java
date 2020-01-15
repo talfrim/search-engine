@@ -41,7 +41,8 @@ public class ProgramStarter {
      * @param toStemm
      */
     public static void startProgram(String inputPath, String outputPath, boolean toStemm) {
-        long start = System.currentTimeMillis();
+        dictionary = new Dictionary();
+        Indexer.dictionary = new Dictionary();
         String pathFolder = inputPath + "\\corpus";
         String stemRelatedFolder = getStemRelatedFolder(toStemm);
         initFolders(toStemm, outputPath);
