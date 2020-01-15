@@ -82,8 +82,7 @@ public class DocumentFileHandler {
      * this method gets String docNo and returns all of the doc's properties from our the docs file via string line
      * @return String line of data
      */
-    public ConcurrentHashMap<String, String> extractDocsData(ArrayList<String> docsPath)
-    {
+    public ConcurrentHashMap<String, String> extractDocsData(ArrayList<String> docsPath) throws InterruptedException {
         int numOfFiles = 6;
         ExecutorService pool = Executors.newFixedThreadPool(numOfFiles);
 
@@ -98,12 +97,9 @@ public class DocumentFileHandler {
                 e.printStackTrace();
             }
         }
-        try {
             pool.shutdown();
             pool.awaitTermination(200000, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+
         //returning the line of doc's data
         return docsHolder;
     }

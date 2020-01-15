@@ -207,6 +207,11 @@ public class ProgramStarter {
                     return;
                 }
             }
+            if(DocumentFileObject.getInstance().docsHolder == null || DocumentFileObject.getInstance().docsHolder.size() == 0){
+                DocumentFileHandler documentFileHandler = new DocumentFileHandler();
+                DocumentFileObject documentFileObject = DocumentFileObject.getInstance();
+                documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles(stemCheckBoxIsSelected, GUI.outputPathTextField.getText())));
+            }
             Searcher searcher = new Searcher(similarWords, stemIsSelected, dictionary, generateStopWords(inputPath), queries, entities, onlineIsSelected);
             ArrayList<QueryIDDocDataToView> datas = new ArrayList<>();
             ArrayList<DocumentDataToView>[] queryAnswers = searcher.search();
@@ -260,17 +265,15 @@ public class ProgramStarter {
                 return;
             }
         }
-        if (dictionary == null || dictionary.dictionaryTable.size() == 0) {
-            dictionary = Indexer.dictionary;
-            if(dictionary.dictionaryTable.size() == 0) {
-                AlertBox.display("", "No dictionary in memory, please load dictionary!");
-                return;
-            }
-        }
+
         if(DocumentFileObject.getInstance().docsHolder == null || DocumentFileObject.getInstance().docsHolder.size() == 0){
             DocumentFileHandler documentFileHandler = new DocumentFileHandler();
             DocumentFileObject documentFileObject = DocumentFileObject.getInstance();
-            documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles(stemCheckBoxIsSelected, GUI.outputPathTextField.getText())));
+            try {
+                documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles(stemCheckBoxIsSelected, GUI.outputPathTextField.getText())));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         ArrayList<String> queryList = new ArrayList<>();
         queryList.add(query);
@@ -394,14 +397,18 @@ public class ProgramStarter {
      * @param outputPath
      */
     public static void loadDictionaryToMemory(String outputPath, boolean stemIsSelected) {
-        DocumentFileHandler documentFileHandler = new DocumentFileHandler();
-        DocumentFileObject documentFileObject = DocumentFileObject.getInstance();
-        documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles(stemIsSelected, outputPath)));
         try {
+            DocumentFileHandler documentFileHandler = new DocumentFileHandler();
+            DocumentFileObject documentFileObject = DocumentFileObject.getInstance();
+            documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles(stemIsSelected, outputPath)));
+
             boolean isWithStemming = stemIsSelected;
             DictionaryFileHandler dfh = new DictionaryFileHandler(new Model.IndexerAndDictionary.Dictionary());
             dictionary = dfh.readFromFile(outputPath, isWithStemming);
-            AlertBox.display("Loaded", "Dictionary loaded!");
+            if(dictionary != null && dictionary.dictionaryTable.size() > 0 && documentFileObject.docsHolder != null && documentFileObject.docsHolder.size() > 0)
+                AlertBox.display("Loaded", "Dictionary loaded!");
+            else
+                AlertBox.display("", "No dictionary file! or docs files!");
 
         } catch (Exception e) {
             AlertBox.display("", "No dictionary file!");
