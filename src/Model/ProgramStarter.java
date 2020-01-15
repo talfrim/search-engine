@@ -15,6 +15,7 @@ import Model.OuputFiles.DocumentFile.DocumentFileObject;
 import Model.TermsAndDocs.TermCounterPair;
 import Model.TermsAndDocs.Terms.Term;
 import View.AlertBox;
+import View.GUI;
 import javafx.scene.Scene;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -31,8 +32,10 @@ import java.util.concurrent.TimeUnit;
 
 public class ProgramStarter {
     public static Dictionary dictionary;
+
     /**
      * this method starts the GloveTrainedFilesUsage program by creating workers an executing them.
+     *
      * @param inputPath
      * @param outputPath
      * @param toStemm
@@ -41,7 +44,7 @@ public class ProgramStarter {
         long start = System.currentTimeMillis();
         String pathFolder = inputPath + "\\corpus";
         String stemRelatedFolder = getStemRelatedFolder(toStemm);
-        initFolders(toStemm,outputPath);
+        initFolders(toStemm, outputPath);
         File folder = new File(pathFolder);
         String[] folderFiles = folder.list();
         ThreadPoolExecutor executor;
@@ -59,7 +62,7 @@ public class ProgramStarter {
             String sPostFilePath = stemRelatedFolder + "\\workersFiles\\workerArray" + i + "\\";
             String docFilePath = outputPath + "\\" + stemRelatedFolder + "\\DocsFiles\\docFile" + i;
             docsPath.add(docFilePath);
-            WorkerThread wt = new WorkerThread(pathFolder, readFilesPath, sPostFilePath, docFilePath, stopWords,toStemm);
+            WorkerThread wt = new WorkerThread(pathFolder, readFilesPath, sPostFilePath, docFilePath, stopWords, toStemm);
             executor.execute(wt);
         }
         try {
@@ -80,8 +83,6 @@ public class ProgramStarter {
         dictionaryFileHandler.writeToFile(outputPath, toStemm);
 
 
-
-
     }
 
     private static String getStemRelatedFolder(boolean toStemm) {
@@ -92,6 +93,7 @@ public class ProgramStarter {
 
     /**
      * this is a static method which getting
+     *
      * @param path
      * @return hashSet of all the sth given stop words
      */
@@ -99,18 +101,19 @@ public class ProgramStarter {
         File file = new File(path);
         BufferedReader br;
         HashSet<String> stopWords = new HashSet<>();
-            br = new BufferedReader(new FileReader(file + ".txt"));
-            String st;
-            while ((st = br.readLine()) != null) {
-                if(!st.equals(""))
-                    stopWords.add(st);
-            }
-            br.close();
+        br = new BufferedReader(new FileReader(file + ".txt"));
+        String st;
+        while ((st = br.readLine()) != null) {
+            if (!st.equals(""))
+                stopWords.add(st);
+        }
+        br.close();
         return stopWords;
     }
 
     /**
      * this method inits the files array that we are sending to each worker
+     *
      * @param folderFiles
      * @return
      */
@@ -135,6 +138,7 @@ public class ProgramStarter {
 
     /**
      * this method makes the folders we need if they dont exist
+     *
      * @param toStem
      * @param outputPath
      */
@@ -173,10 +177,11 @@ public class ProgramStarter {
         if (!fileTooCheck.exists()) {
             fileTooCheck.mkdir();
         }
-        File [] files= fileTooCheck.listFiles();
-        for (File f : files){
-            f.delete();
-        }
+        File[] files = fileTooCheck.listFiles();
+        if (files != null)
+            for (File f : files) {
+                f.delete();
+            }
 
     }
 
@@ -187,7 +192,7 @@ public class ProgramStarter {
             HashMap<String, String> queriesHash = QueryFileUtil.extractQueries(path);
             ArrayList<String> queries = new ArrayList<>();
             ArrayList<String> queriesID = new ArrayList<>();
-            for (Map.Entry<String, String> entry : queriesHash.entrySet()){
+            for (Map.Entry<String, String> entry : queriesHash.entrySet()) {
                 queries.add(entry.getValue());
                 queriesID.add(entry.getKey());
             }
@@ -195,8 +200,12 @@ public class ProgramStarter {
             boolean entities = showEntitiesCheckBoxIsSelected;
             boolean stemIsSelected = stemCheckBoxIsSelected;
             boolean onlineIsSelected = onlineSemanticIsSelected;
-            if (dictionary == null) {
-                AlertBox.display("", "No dictionary in memory, please load dictionary!");
+            if (dictionary == null || dictionary.dictionaryTable.size() == 0) {
+                dictionary = Indexer.dictionary;
+                if(dictionary.dictionaryTable.size() == 0) {
+                    AlertBox.display("", "No dictionary in memory, please load dictionary!");
+                    return;
+                }
             }
             Searcher searcher = new Searcher(similarWords, stemIsSelected, dictionary, generateStopWords(inputPath), queries, entities, onlineIsSelected);
             ArrayList<QueryIDDocDataToView> datas = new ArrayList<>();
@@ -244,12 +253,28 @@ public class ProgramStarter {
     public static void runSingleQuery(String query, boolean similarWords, boolean writeResultToFileIsSelected, boolean showEntitiesIsSelected, boolean stemCheckBoxIsSelected, boolean onlineSemanticIsSelected, String resultFileText, String resultFileName, boolean showDatesIsSelected, String inputPath) {
         boolean writeToFile = writeResultToFileIsSelected;
         boolean entities = showEntitiesIsSelected;
-        if (dictionary == null) {
-            AlertBox.display("", "No dictionary in memory, please load dictionary!");
+        if (dictionary == null || dictionary.dictionaryTable.size() == 0) {
+            dictionary = Indexer.dictionary;
+            if(dictionary.dictionaryTable.size() ==  0){
+                AlertBox.display("", "No dictionary in memory, please load dictionary!");
+                return;
+            }
+        }
+        if (dictionary == null || dictionary.dictionaryTable.size() == 0) {
+            dictionary = Indexer.dictionary;
+            if(dictionary.dictionaryTable.size() == 0) {
+                AlertBox.display("", "No dictionary in memory, please load dictionary!");
+                return;
+            }
+        }
+        if(DocumentFileObject.getInstance().docsHolder == null || DocumentFileObject.getInstance().docsHolder.size() == 0){
+            DocumentFileHandler documentFileHandler = new DocumentFileHandler();
+            DocumentFileObject documentFileObject = DocumentFileObject.getInstance();
+            documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles(stemCheckBoxIsSelected, GUI.outputPathTextField.getText())));
         }
         ArrayList<String> queryList = new ArrayList<>();
         queryList.add(query);
-        Searcher searcher = new Searcher(similarWords, stemCheckBoxIsSelected, dictionary, generateStopWords(inputPath), queryList, entities,onlineSemanticIsSelected);
+        Searcher searcher = new Searcher(similarWords, stemCheckBoxIsSelected, dictionary, generateStopWords(inputPath), queryList, entities, onlineSemanticIsSelected);
         ArrayList<DocumentDataToView>[] answer = searcher.search();
         showResultsWithoutIds(answer[0], showDatesIsSelected, showEntitiesIsSelected);
         if (writeToFile) {
@@ -423,17 +448,30 @@ public class ProgramStarter {
         }
         for (String s : entries) {
             File currentFile = new File(index.getPath(), s);
-            if (!currentFile.exists()) {
-                AlertBox.display("", "Nothing to delete!");
-                return;
-            }
             currentFile.delete();
         }
-        index.delete();
+        if ((!deleteDir(new File(outputPath + "\\stemOur"))) && (!deleteDir(new File(outputPath + "\\noStemOur")))) {
+            AlertBox.display("", "Nothing to delete!");
+            return;
+        }
+        //index.delete();
         Parse.deleteStatics();
         Dictionary.deleteMutex();
         Indexer.deleteDictionary();
         dictionary = null;
+    }
+
+    public static boolean deleteDir(File dir) {
+        if (dir.isDirectory()) {
+            String[] children = dir.list();
+            for (int i = 0; i < children.length; i++) {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        return dir.delete();
     }
 
     /*

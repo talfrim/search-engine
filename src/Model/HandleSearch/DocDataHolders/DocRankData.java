@@ -144,4 +144,8 @@ public class DocRankData {
     public void setMaxTf(int maxTf) {
         this.maxTf = maxTf;
     }
+
+    public String getDocNo() {
+        return docNo;
+    }
 }

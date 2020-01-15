@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * this class is responsible for writing and writing the docs files
@@ -18,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class DocumentFileHandler {
 
     public DocumentFileHandler() { }
+    public static AtomicInteger countDocs = new AtomicInteger(0);
 
     /**
      * this method gets the details of a document
@@ -33,6 +35,7 @@ public class DocumentFileHandler {
      */
     public void writeDocumentDataToFile(String documentDataFilePath, String docNo, int numOfUniqueTerms, int mostCommonTermCounter, Term mostCommmonTerm,
                                         DocumentDateTerm documentDateTerm, String header, int docSize, HashMap<Term, Integer> entities) {
+        countDocs.addAndGet(1);
 
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(docNo);

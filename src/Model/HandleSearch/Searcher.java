@@ -518,7 +518,6 @@ public class Searcher {
             double score = entitySize * appearancesInDoc;
             score = score / Math.log(appearancesInCorpus);
             scores.add(new Pair<>(currentEntity, score));
-
         }
         return scores;
     }

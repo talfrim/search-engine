@@ -12,6 +12,7 @@ import Model.OuputFiles.DictionaryFileHandler;
 import Model.OuputFiles.DocumentFile.DocumentFileHandler;
 import Model.OuputFiles.DocumentFile.DocumentFileObject;
 import Model.ProgramStarter;
+import Model.TermsAndDocs.Docs.Document;
 import Model.TermsAndDocs.TermCounterPair;
 import Model.TermsAndDocs.Terms.Term;
 import javafx.application.Application;
@@ -49,7 +50,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
 
 
     TextField inputPathTextField;
-    TextField outputPathTextField;
+    public static TextField outputPathTextField;
     //part 2
     TextField singleQueryTextField;
     TextField queriesFilePathTextFiled;
@@ -227,8 +228,13 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         if (event.getSource() == startButton) {
             if (inputPath.equals("") || outputPath.equals(""))
                 AlertBox.display("Alert", "Please choose paths and try again.");
-            else
+            else {
+                long time1=System.currentTimeMillis();
                 ProgramStarter.startProgram(inputPath, outputPath, isWithStemming);
+                long time2=System.currentTimeMillis();
+                AlertBox.display("Done", "Docs: " + DocumentFileHandler.countDocs + " terms: "+ Indexer.dictionary.dictionaryTable.size()+ " time: " +(time2-time1)/1000);
+            }
+
         }
         if (event.getSource() == resetButton) {
             ProgramStarter.reset(outputPath);
