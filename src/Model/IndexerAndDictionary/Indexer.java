@@ -30,10 +30,9 @@ public class Indexer {
 
     /**
      * this method builds dictionary and writes posting files to specified paths given by the user.
-     * @param toStem mentions with stemming or not
      */
 
-    public void index(boolean toStem) {
+    public void index() {
         int count = 0;
         //iterating through the file
         for (int i = pairsMapsList.size() - 1; i >= 0; i--) {

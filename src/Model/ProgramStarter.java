@@ -1,22 +1,36 @@
 package Model;
 
+import Model.HandleParse.Parse;
+import Model.HandleReadFiles.QueryFileUtil;
+import Model.HandleSearch.DocDataHolders.DocumentDataToView;
+import Model.HandleSearch.DocDataHolders.QueryIDDocDataToView;
+import Model.HandleSearch.Searcher;
 import Model.IndexerAndDictionary.CountAndPointerDicValue;
+import Model.IndexerAndDictionary.Dictionary;
 import Model.IndexerAndDictionary.HandleMerge;
 import Model.IndexerAndDictionary.Indexer;
 import Model.OuputFiles.DictionaryFileHandler;
+import Model.OuputFiles.DocumentFile.DocumentFileHandler;
+import Model.OuputFiles.DocumentFile.DocumentFileObject;
+import Model.TermsAndDocs.TermCounterPair;
 import Model.TermsAndDocs.Terms.Term;
+import View.AlertBox;
+import javafx.scene.Scene;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class ProgramStarter {
-
-
+    public static Dictionary dictionary;
     /**
      * this method starts the GloveTrainedFilesUsage program by creating workers an executing them.
      * @param inputPath
@@ -166,5 +180,275 @@ public class ProgramStarter {
         }
 
     }
+
+    @SuppressWarnings("Duplicates")
+    public static void runQueriesFromFile(String path, boolean similarWords, boolean writeResultToFileCheckBoxIsSelected, boolean showEntitiesCheckBoxIsSelected, boolean stemCheckBoxIsSelected, boolean onlineSemanticIsSelected, String resultFileText, String resultFileName, String inputPath, boolean showDatesIsSelected) {
+        long time1 = System.currentTimeMillis();
+        try {
+            HashMap<String, String> queriesHash = QueryFileUtil.extractQueries(path);
+            ArrayList<String> queries = new ArrayList<>();
+            ArrayList<String> queriesID = new ArrayList<>();
+            for (Map.Entry<String, String> entry : queriesHash.entrySet()){
+                queries.add(entry.getValue());
+                queriesID.add(entry.getKey());
+            }
+            boolean writeToFile = writeResultToFileCheckBoxIsSelected;
+            boolean entities = showEntitiesCheckBoxIsSelected;
+            boolean stemIsSelected = stemCheckBoxIsSelected;
+            boolean onlineIsSelected = onlineSemanticIsSelected;
+            if (dictionary == null) {
+                AlertBox.display("", "No dictionary in memory, please load dictionary!");
+            }
+            Searcher searcher = new Searcher(similarWords, stemIsSelected, dictionary, generateStopWords(inputPath), queries, entities, onlineIsSelected);
+            ArrayList<QueryIDDocDataToView> datas = new ArrayList<>();
+            ArrayList<DocumentDataToView>[] queryAnswers = searcher.search();
+            for (int i = 0; i < queryAnswers.length; i++) {
+                for (DocumentDataToView docData : queryAnswers[i]) {
+                    datas.add(new QueryIDDocDataToView(queriesID.get(i), docData.getDocNo(), docData.getDate(), docData.getEntities()));
+                }
+            }
+            Collections.sort(datas, new Comparator<QueryIDDocDataToView>() {
+                @Override
+                public int compare(QueryIDDocDataToView o1, QueryIDDocDataToView o2) {
+                    return o1.getQueryID().compareTo(o2.getQueryID());
+                }
+            });
+            if (writeToFile) {
+                path = resultFileText + "\\" + resultFileName + ".txt";
+                try {
+                    File toCreateFile = new File(path);
+                    if (toCreateFile.exists())
+                        toCreateFile.delete();
+                    toCreateFile.createNewFile(); //create empty file
+                    FileWriter fw = new FileWriter(path, true);
+                    BufferedWriter bw = new BufferedWriter(fw);
+                    for (int i = 0; i < datas.size(); i++) {
+                        String queryId = datas.get(i).getQueryID();
+                        if (queryId.charAt(queryId.length() - 1) == ' ')
+                            queryId = queryId.substring(0, queryId.length() - 1);
+                        bw.append(queryId + " " + 0 + " " + datas.get(i).getDocNo() + " " + "1" + " " + "1.1" + " " + "mt");
+                        bw.newLine();
+                    }
+                    bw.close();
+                } catch (Exception e) {
+                }
+            }
+            showResultsWithIds(datas, showDatesIsSelected, showEntitiesCheckBoxIsSelected);
+            long time2 = System.currentTimeMillis();
+            System.out.println("Total time: " + (time2-time1));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @SuppressWarnings("Duplicates")
+    public static void runSingleQuery(String query, boolean similarWords, boolean writeResultToFileIsSelected, boolean showEntitiesIsSelected, boolean stemCheckBoxIsSelected, boolean onlineSemanticIsSelected, String resultFileText, String resultFileName, boolean showDatesIsSelected, String inputPath) {
+        boolean writeToFile = writeResultToFileIsSelected;
+        boolean entities = showEntitiesIsSelected;
+        if (dictionary == null) {
+            AlertBox.display("", "No dictionary in memory, please load dictionary!");
+        }
+        ArrayList<String> queryList = new ArrayList<>();
+        queryList.add(query);
+        Searcher searcher = new Searcher(similarWords, stemCheckBoxIsSelected, dictionary, generateStopWords(inputPath), queryList, entities,onlineSemanticIsSelected);
+        ArrayList<DocumentDataToView>[] answer = searcher.search();
+        showResultsWithoutIds(answer[0], showDatesIsSelected, showEntitiesIsSelected);
+        if (writeToFile) {
+            String qId = "000";
+            String path = resultFileText + "\\" + resultFileName + ".txt";
+            try {
+                File toCreateFile = new File(path);
+                if (toCreateFile.exists())
+                    toCreateFile.delete();
+                toCreateFile.createNewFile(); //create empty file
+                FileWriter fw = new FileWriter(path, true);
+                BufferedWriter bw = new BufferedWriter(fw);
+                for (int i = 0; i < answer[0].size(); i++) {
+                    bw.append(qId + " " + 0 + " " + answer[0].get(i).getDocNo() + " " + "1" + " " + "1.1" + " " + "mt" + "\n");
+                    bw.newLine();
+                }
+                bw.close();
+            } catch (Exception e) {
+            }
+        }
+
+    }
+
+    @SuppressWarnings("Duplicates")
+    private static void showResultsWithoutIds(ArrayList<DocumentDataToView> answer, boolean showDateIsSelected, boolean showEntitiesIsSelected) {
+        System.out.println("Showing results of single q");
+        Stage stage = new Stage();
+        TableView tableView = new TableView();
+
+        TableColumn<String, DocumentDataToView> docNoCol = new TableColumn("DocNo");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("docNo"));
+        TableColumn<String, DocumentDataToView> dateCol = new TableColumn("Doc Date");
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
+        TableColumn<String, DocumentDataToView> entitiesCol = new TableColumn("Entities");
+        entitiesCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
+
+        tableView.getColumns().add(docNoCol);
+        if (showDateIsSelected)
+            tableView.getColumns().add(dateCol);
+        if (showEntitiesIsSelected)
+            tableView.getColumns().add(entitiesCol);
+
+        for (int i = 0; i < answer.size(); i++) {
+            tableView.getItems().add(answer.get(i));
+        }
+        VBox vbox = new VBox(tableView);
+        Scene scene = new Scene(vbox);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    @SuppressWarnings("Duplicates")
+    private static void showResultsWithIds(ArrayList<QueryIDDocDataToView> answer, boolean showDateIsSelected, boolean showEntitiesIsSelected) {
+        Stage stage = new Stage();
+        TableView tableView = new TableView();
+
+
+        TableColumn<String, QueryIDDocDataToView> queryIdCol = new TableColumn("QueryId");
+        queryIdCol.setCellValueFactory(new PropertyValueFactory<>("queryID"));
+        TableColumn<String, QueryIDDocDataToView> docNoCol = new TableColumn("DocNo");
+        docNoCol.setCellValueFactory(new PropertyValueFactory<>("docNo"));
+        TableColumn<String, QueryIDDocDataToView> dateCol = new TableColumn("Doc Date");
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
+        TableColumn<String, QueryIDDocDataToView> entitiesCol = new TableColumn("Entities");
+        entitiesCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
+
+        tableView.getColumns().add(queryIdCol);
+        tableView.getColumns().add(docNoCol);
+        if (showDateIsSelected)
+            tableView.getColumns().add(dateCol);
+        if (showEntitiesIsSelected)
+            tableView.getColumns().add(entitiesCol);
+
+        for (int i = 0; i < answer.size(); i++) {
+            tableView.getItems().add(answer.get(i));
+        }
+        VBox vbox = new VBox(tableView);
+        Scene scene = new Scene(vbox);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    private static HashSet<String> generateStopWords(String inputPath) {
+        try {
+            return ProgramStarter.readStopWords(inputPath + "\\05 stop_words");
+        } catch (Exception e) {
+            try {
+                return ProgramStarter.readStopWords("data\\05 stop_words");
+            } //default path
+            catch (Exception ourE) {
+                ourE.printStackTrace();
+            }
+        }
+        return new HashSet<>();
+    }
+
+    private static ArrayList<String> generateDocsFiles(boolean stemIsSelected, String outputPath) {
+        ArrayList<String> output = new ArrayList<>();
+        String stemRelatedFolder = getStemRelatedFolderForDocFiles(stemIsSelected);
+
+        for (int i = 0; i < 6; i++) {
+            String docFilePath = outputPath + "\\" + stemRelatedFolder + "\\DocsFiles\\docFile" + i;
+            output.add(docFilePath);
+        }
+        return output;
+    }
+
+    private static String getStemRelatedFolderForDocFiles(boolean selected) {
+        if (selected)
+            return "stemOur";
+        return "noStemOur";
+    }
+
+
+    /**
+     * loads doctionary from outputPath, according to stemming box
+     *
+     * @param outputPath
+     */
+    public static void loadDictionaryToMemory(String outputPath, boolean stemIsSelected) {
+        DocumentFileHandler documentFileHandler = new DocumentFileHandler();
+        DocumentFileObject documentFileObject = DocumentFileObject.getInstance();
+        documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles(stemIsSelected, outputPath)));
+        try {
+            boolean isWithStemming = stemIsSelected;
+            DictionaryFileHandler dfh = new DictionaryFileHandler(new Model.IndexerAndDictionary.Dictionary());
+            dictionary = dfh.readFromFile(outputPath, isWithStemming);
+            AlertBox.display("Loaded", "Dictionary loaded!");
+
+        } catch (Exception e) {
+            AlertBox.display("", "No dictionary file!");
+        }
+    }
+
+    /**
+     * showing sorted dictionary
+     */
+    public static void showSortedDictionary() {
+        Stage stage = new Stage();
+        TableView tableView = new TableView();
+        TableColumn<String, TermCounterPair> termCol = new TableColumn("Term");
+        termCol.setCellValueFactory(new PropertyValueFactory<>("termStr"));
+        TableColumn<Integer, TermCounterPair> countCol = new TableColumn("Count");
+        countCol.setCellValueFactory(new PropertyValueFactory<>("count"));
+
+        tableView.getColumns().add(termCol);
+        tableView.getColumns().add(countCol);
+
+        for (Map.Entry<Term, CountAndPointerDicValue> entry : dictionary.dictionaryTable.entrySet()) {
+            tableView.getItems().add(new TermCounterPair(entry.getKey().getData(), entry.getValue().getTotalCount()));
+        }
+
+
+        VBox vbox = new VBox(tableView);
+        Scene scene = new Scene(vbox);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+
+    /**
+     * delete info from dictionary if files exists
+     *
+     * @param outputPath
+     */
+    public static void reset(String outputPath) {
+        File index = new File(outputPath);
+        String[] entries = index.list();
+        if (entries == null) {
+            AlertBox.display("", "Nothing to delete!");
+            return;
+        }
+        for (String s : entries) {
+            File currentFile = new File(index.getPath(), s);
+            if (!currentFile.exists()) {
+                AlertBox.display("", "Nothing to delete!");
+                return;
+            }
+            currentFile.delete();
+        }
+        index.delete();
+        Parse.deleteStatics();
+        Dictionary.deleteMutex();
+        Indexer.deleteDictionary();
+        dictionary = null;
+    }
+
+    /*
+    /**
+     * starts the processing
+     *
+     * @param inputPath
+     * @param outputPath
+     * @param toStemm
+    private void startProgram(String inputPath, String outputPath, boolean toStemm) {
+        ProgramStarter.startProgram(inputPath, outputPath, toStemm);
+    }
+    */
 
 }

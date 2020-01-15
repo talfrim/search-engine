@@ -38,7 +38,6 @@ public class WorkerThread implements Runnable{
         int numOfFiles = 10;
         int partition = readFilesPath.length / numOfFiles;
         for (int i = 0; i < partition; i++) {
-            long start = System.currentTimeMillis();
             String[] currentFiles = createPartOfFolder(readFilesPath, partition, i);
             workerID++;
             ArrayList<HashMap<Term, TermDocPair>> docsPairsList = new ArrayList<>();
@@ -56,7 +55,7 @@ public class WorkerThread implements Runnable{
                 }
             }
             Indexer indexer = new Indexer(docsPairsList, docFilePath, workerPostPath);
-            indexer.index(toStem);
+            indexer.index();
         }
     }
 

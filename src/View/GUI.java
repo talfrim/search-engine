@@ -96,6 +96,9 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         HBox resultTableExtrasHBox;
         HBox semanitcsHBox;
 
+        // set Dictionary
+        ProgramStarter.dictionary = dictionary;
+
         //directory choosers
         inputPathChooser = new DirectoryChooser();
         outputPathChooser = new DirectoryChooser();
@@ -189,7 +192,9 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         mainVBox.getChildren().add(extraButtonsHBox);
         //part 2
         mainVBox.getChildren().add(separator1);
-        mainVBox.getChildren().add(semanticallySimilarCheckBox);
+        semanitcsHBox = new HBox(semanticallySimilarCheckBox,onlineSemanticCheckBox);
+        semanitcsHBox.setSpacing(15);
+        mainVBox.getChildren().add(semanitcsHBox);
         resultTableExtrasHBox = new HBox(showEntitiesCheckBox, showDateCheckBox);
         resultTableExtrasHBox.setSpacing(15);
         mainVBox.getChildren().add(resultTableExtrasHBox);
@@ -215,6 +220,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
      */
     @Override
     public void handle(ActionEvent event) {
+
         boolean isWithStemming = stemCheckBox.isSelected();
         inputPath = inputPathTextField.getText();
         outputPath = outputPathTextField.getText();
@@ -222,300 +228,33 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
             if (inputPath.equals("") || outputPath.equals(""))
                 AlertBox.display("Alert", "Please choose paths and try again.");
             else
-                startProgram(inputPath, outputPath, isWithStemming);
+                ProgramStarter.startProgram(inputPath, outputPath, isWithStemming);
         }
         if (event.getSource() == resetButton) {
-            reset(outputPath);
+            ProgramStarter.reset(outputPath);
         }
         if (event.getSource() == viewDictionaryButton) {
-            showSortedDictionary();
+            ProgramStarter.showSortedDictionary();
         }
         if (event.getSource() == loadDictionaryToMemoryButton) {
-            loadDictionaryToMemory(outputPath);
+            ProgramStarter.loadDictionaryToMemory(outputPath, stemCheckBox.isSelected());
         }
         //part 2
         if (event.getSource() == searchQueryFromTextButton) {
             if (singleQueryTextField.getText().equals("") || singleQueryTextField.getText().equals("Insert your query here"))
                 AlertBox.display("", "Please write a query and try again!");
             else
-                runSingleQuery(singleQueryTextField.getText(), semanticallySimilarCheckBox.isSelected());
+                ProgramStarter.runSingleQuery(singleQueryTextField.getText(), semanticallySimilarCheckBox.isSelected(), writeResultsToFileCheckBox.isSelected(), showEntitiesCheckBox.isSelected(), stemCheckBox.isSelected(), onlineSemanticCheckBox.isSelected(), resultFileTextField.getText(), resultFileName, showDateCheckBox.isSelected(), inputPath);
         }
         if (event.getSource() == searchUsingFileButton) {
             if (queriesFilePathTextFiled.getText().equals("") || queriesFilePathTextFiled.getText().equals("Or choose a file..."))
                 AlertBox.display("", "Please choose file and try again!");
             else
-                runQueriesFromFile(queriesFilePathTextFiled.getText(), semanticallySimilarCheckBox.isSelected());
+                ProgramStarter.runQueriesFromFile(queriesFilePathTextFiled.getText(), semanticallySimilarCheckBox.isSelected(), writeResultsToFileCheckBox.isSelected(), showEntitiesCheckBox.isSelected(), stemCheckBox.isSelected(), onlineSemanticCheckBox.isSelected(), resultFileTextField.getText(), resultFileName, inputPath, showDateCheckBox.isSelected());
         }
     }
 
-    @SuppressWarnings("Duplicates")
-    private void runQueriesFromFile(String path, boolean similarWords) {
-        long time1 = System.currentTimeMillis();
-        try {
-            HashMap<String, String> queriesHash = QueryFileUtil.extractQueries(path);
-            ArrayList<String> queries = new ArrayList<>();
-            ArrayList<String> queriesID = new ArrayList<>();
-            for (Map.Entry<String, String> entry : queriesHash.entrySet()){
-                queries.add(entry.getValue());
-                queriesID.add(entry.getKey());
-            }
-            boolean writeToFile = writeResultsToFileCheckBox.isSelected();
-            boolean entities = showEntitiesCheckBox.isSelected();
-            if (dictionary == null) {
-                    AlertBox.display("", "No dictionary in memory, please load dictionary!");
-            }
-            Searcher searcher = new Searcher(similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords(), queries, entities);
-            ArrayList<QueryIDDocDataToView> datas = new ArrayList<>();
-            ArrayList<DocumentDataToView>[] queryAnswers = searcher.search();
-            for (int i = 0; i < queryAnswers.length; i++) {
-                for (DocumentDataToView docData : queryAnswers[i]) {
-                    datas.add(new QueryIDDocDataToView(queriesID.get(i), docData.getDocNo(), docData.getDate(), docData.getEntities()));
-                }
-                System.out.println(i);
-            }
-            Collections.sort(datas, new Comparator<QueryIDDocDataToView>() {
-                @Override
-                public int compare(QueryIDDocDataToView o1, QueryIDDocDataToView o2) {
-                    return o1.getQueryID().compareTo(o2.getQueryID());
-                }
-            });
-            if (writeToFile) {
-                path = resultFileTextField.getText() + "\\" + resultFileName + ".txt";
-                try {
-                    File toCreateFile = new File(path);
-                    if (toCreateFile.exists())
-                        toCreateFile.delete();
-                    toCreateFile.createNewFile(); //create empty file
-                    FileWriter fw = new FileWriter(path, true);
-                    BufferedWriter bw = new BufferedWriter(fw);
-                    for (int i = 0; i < datas.size(); i++) {
-                        String queryId = datas.get(i).getQueryID();
-                        if (queryId.charAt(queryId.length() - 1) == ' ')
-                            queryId = queryId.substring(0, queryId.length() - 1);
-                        bw.append(queryId + " " + 0 + " " + datas.get(i).getDocNo() + " " + "1" + " " + "1.1" + " " + "mt");
-                        bw.newLine();
-                    }
-                    System.out.println("All Wriiten to file.");
-                    bw.close();
-                } catch (Exception e) {
-                }
-            }
-            showResultsWithIds(datas);
-            long time2 = System.currentTimeMillis();
-            System.out.println("Total time: " + (time2-time1));
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @SuppressWarnings("Duplicates")
-    private void runSingleQuery(String query, boolean similarWords) {
-        boolean writeToFile = writeResultsToFileCheckBox.isSelected();
-        boolean entities = showEntitiesCheckBox.isSelected();
-        if (dictionary == null) {
-                AlertBox.display("", "No dictionary in memory, please load dictionary!");
-        }
-        ArrayList<String> queryList = new ArrayList<>();
-        queryList.add(query);
-        Searcher searcher = new Searcher(similarWords, stemCheckBox.isSelected(), dictionary, generateStopWords(), queryList, entities);
-        ArrayList<DocumentDataToView>[] answer = searcher.search();
-        this.showResultsWithoutIds(answer[0]);
-        if (writeToFile) {
-            String qId = "000";
-            String path = resultFileTextField.getText() + "\\" + resultFileName + ".txt";
-            try {
-                File toCreateFile = new File(path);
-                if (toCreateFile.exists())
-                    toCreateFile.delete();
-                toCreateFile.createNewFile(); //create empty file
-                FileWriter fw = new FileWriter(path, true);
-                BufferedWriter bw = new BufferedWriter(fw);
-                for (int i = 0; i < answer[0].size(); i++) {
-                    bw.append(qId + " " + 0 + " " + answer[0].get(i).getDocNo() + " " + "1" + " " + "1.1" + " " + "mt" + "\n");
-                    bw.newLine();
-                }
-                bw.close();
-            } catch (Exception e) {
-            }
-        }
-
-    }
-
-    @SuppressWarnings("Duplicates")
-    private void showResultsWithoutIds(ArrayList<DocumentDataToView> answer) {
-        System.out.println("Showing results of single q");
-        Stage stage = new Stage();
-        TableView tableView = new TableView();
-
-        TableColumn<String, DocumentDataToView> docNoCol = new TableColumn("DocNo");
-        docNoCol.setCellValueFactory(new PropertyValueFactory<>("docNo"));
-        TableColumn<String, DocumentDataToView> dateCol = new TableColumn("Doc Date");
-        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
-        TableColumn<String, DocumentDataToView> entitiesCol = new TableColumn("Entities");
-        entitiesCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
-
-        tableView.getColumns().add(docNoCol);
-        if (showDateCheckBox.isSelected())
-            tableView.getColumns().add(dateCol);
-        if (showEntitiesCheckBox.isSelected())
-            tableView.getColumns().add(entitiesCol);
-
-        for (int i = 0; i < answer.size(); i++) {
-            tableView.getItems().add(answer.get(i));
-        }
-        VBox vbox = new VBox(tableView);
-        Scene scene = new Scene(vbox);
-        stage.setScene(scene);
-        stage.show();
-    }
-
-    @SuppressWarnings("Duplicates")
-    private void showResultsWithIds(ArrayList<QueryIDDocDataToView> answer) {
-        Stage stage = new Stage();
-        TableView tableView = new TableView();
-
-
-        TableColumn<String, QueryIDDocDataToView> queryIdCol = new TableColumn("QueryId");
-        queryIdCol.setCellValueFactory(new PropertyValueFactory<>("queryID"));
-        TableColumn<String, QueryIDDocDataToView> docNoCol = new TableColumn("DocNo");
-        docNoCol.setCellValueFactory(new PropertyValueFactory<>("docNo"));
-        TableColumn<String, QueryIDDocDataToView> dateCol = new TableColumn("Doc Date");
-        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
-        TableColumn<String, QueryIDDocDataToView> entitiesCol = new TableColumn("Entities");
-        entitiesCol.setCellValueFactory(new PropertyValueFactory<>("entities"));
-
-        tableView.getColumns().add(queryIdCol);
-        tableView.getColumns().add(docNoCol);
-        if (showDateCheckBox.isSelected())
-            tableView.getColumns().add(dateCol);
-        if (showEntitiesCheckBox.isSelected())
-            tableView.getColumns().add(entitiesCol);
-
-        for (int i = 0; i < answer.size(); i++) {
-            tableView.getItems().add(answer.get(i));
-        }
-        VBox vbox = new VBox(tableView);
-        Scene scene = new Scene(vbox);
-        stage.setScene(scene);
-        stage.show();
-    }
-
-    private HashSet<String> generateStopWords() {
-        try {
-            return ProgramStarter.readStopWords(inputPath + "\\05 stop_words");
-        } catch (Exception e) {
-            try {
-                return ProgramStarter.readStopWords("data\\05 stop_words");
-            } //default path
-            catch (Exception ourE) {
-                ourE.printStackTrace();
-            }
-        }
-        return new HashSet<>();
-    }
-
-    private ArrayList<String> generateDocsFiles() {
-        ArrayList<String> output = new ArrayList<>();
-        String stemRelatedFolder = getStemRelatedFolderForDocFiles(stemCheckBox.isSelected());
-
-        for (int i = 0; i < 6; i++) {
-            String docFilePath = outputPath + "\\" + stemRelatedFolder + "\\DocsFiles\\docFile" + i;
-            output.add(docFilePath);
-        }
-        return output;
-    }
-
-    private String getStemRelatedFolderForDocFiles(boolean selected) {
-        if (selected)
-            return "stemOur";
-        return "noStemOur";
-    }
-
-
-    /**
-     * loads doctionary from outputPath, according to stemming box
-     *
-     * @param outputPath
-     */
-    private void loadDictionaryToMemory(String outputPath) {
-        DocumentFileHandler documentFileHandler = new DocumentFileHandler();
-        DocumentFileObject documentFileObject = DocumentFileObject.getInstance();
-        documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles()));
-        try {
-                boolean isWithStemming = stemCheckBox.isSelected();
-                DictionaryFileHandler dfh = new DictionaryFileHandler(new Dictionary());
-                this.dictionary = dfh.readFromFile(outputPath, isWithStemming);
-                AlertBox.display("Loaded", "Dictionary loaded!");
-
-        } catch (Exception e) {
-            AlertBox.display("", "No dictionary file!");
-        }
-    }
-
-    /**
-     * showing sorted dictionary
-     */
-    private void showSortedDictionary() {
-        Stage stage = new Stage();
-        TableView tableView = new TableView();
-        TableColumn<String, TermCounterPair> termCol = new TableColumn("Term");
-        termCol.setCellValueFactory(new PropertyValueFactory<>("termStr"));
-        TableColumn<Integer, TermCounterPair> countCol = new TableColumn("Count");
-        countCol.setCellValueFactory(new PropertyValueFactory<>("count"));
-
-        tableView.getColumns().add(termCol);
-        tableView.getColumns().add(countCol);
-
-        for (Map.Entry<Term, CountAndPointerDicValue> entry : dictionary.dictionaryTable.entrySet()) {
-            tableView.getItems().add(new TermCounterPair(entry.getKey().getData(), entry.getValue().getTotalCount()));
-        }
-
-
-        VBox vbox = new VBox(tableView);
-        Scene scene = new Scene(vbox);
-        stage.setScene(scene);
-        stage.show();
-    }
-
-
-    /**
-     * delete info from dictionary if files exists
-     *
-     * @param outputPath
-     */
-    private void reset(String outputPath) {
-        File index = new File(outputPath);
-        String[] entries = index.list();
-        if (entries == null) {
-            AlertBox.display("", "Nothing to delete!");
-            return;
-        }
-        for (String s : entries) {
-            File currentFile = new File(index.getPath(), s);
-            if (!currentFile.exists()) {
-                AlertBox.display("", "Nothing to delete!");
-                return;
-            }
-            currentFile.delete();
-        }
-        index.delete();
-        Parse.deleteStatics();
-        Dictionary.deleteMutex();
-        Indexer.deleteDictionary();
-        dictionary = null;
-    }
-
-    /**
-     * starts the processing
-     *
-     * @param inputPath
-     * @param outputPath
-     * @param toStemm
-     */
-    private void startProgram(String inputPath, String outputPath, boolean toStemm) {
-        ProgramStarter.startProgram(inputPath, outputPath, toStemm);
-    }
 
     public static void main(String[] args) {
         launch(args);

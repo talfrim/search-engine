@@ -42,15 +42,18 @@ public class Searcher {
     private Dictionary dictionary;
     private boolean withEntities;
     private ArrayList<String> queries;
+    private boolean isOnline;
+
 
     public Searcher(boolean isSemantic, boolean isStemm, Dictionary dictionary, HashSet<String> stopWords
-            , ArrayList<String> queries, boolean withEntities) {
+            , ArrayList<String> queries, boolean withEntities, boolean online) {
         this.isSemantic = isSemantic;
         this.isStemm = isStemm;
         this.dictionary = dictionary;
         this.stopWords = stopWords;
         this.withEntities = withEntities;
         this.queries = queries;
+        this.isOnline=online;
     }
 
     /**
@@ -61,6 +64,8 @@ public class Searcher {
      * @return
      */
     public ArrayList<DocumentDataToView>[] search(){
+        long start = System.currentTimeMillis();
+        double s =(double) start;
         ArrayList<DocumentDataToView> [] allAnswers = new ArrayList[queries.size()];
         ArrayList<TermDocPair> []allQueryTerms = new ArrayList[allAnswers.length];
         ArrayList<TermDocPair> []allSemanticTerms = new ArrayList[allAnswers.length];
@@ -74,7 +79,7 @@ public class Searcher {
             ArrayList<String> queryL = splitBySpaceToArrayList(query);
             ArrayList<String> semanticallyCloseWords = new ArrayList<>();
             if(isSemantic)
-                semanticallyCloseWords = getSemanticallyCloseWords(queryL);
+                semanticallyCloseWords = getSemanticallyCloseWords(queryL,isOnline);
             //parsing the words of the query and semantically close words so they would fit to the dictionary && posting file terms
             allQueryTerms[k].addAll(parseQueryAndHeader(queryL, k));
             allSemanticTerms[k].addAll(parseQueryAndHeader(semanticallyCloseWords, k));
@@ -83,17 +88,18 @@ public class Searcher {
         HashMap<Term, String> postDataForAllQueries = getPostData(allQueryTerms);
         HashMap<Term, String> postDataForAllSimilar = getPostData(allSemanticTerms);
         for (int k = 0; k < allAnswers.length; k++) {
+            if(k > 0) {
+                start = System.currentTimeMillis();
+                s = (double) start;
+            }
             //finding the posting data line for each term
             ArrayList<Pair<TermDocPair, String>> queryTermPostingData = findPostDataInHash(allQueryTerms[k], postDataForAllQueries);
             ArrayList<Pair<TermDocPair, String>> semanticTermPostingData = findPostDataInHash(allSemanticTerms[k], postDataForAllSimilar);
 
             //keeping all of the doc's relevant data for the ranker calculation
             HashMap<String, DocRankData> hashChecker = new HashMap<>();
-            long start = System.currentTimeMillis();
             getDocsData(queryTermPostingData, hashChecker, 0);
             getDocsData(semanticTermPostingData, hashChecker, 1);
-            long end = System.currentTimeMillis();
-            System.out.println("time to exe getDocData --> " + (end - start));
 
             //ranking every relevant doc
             ArrayList<Pair<String, Double>> keepScores = new ArrayList<>();
@@ -117,6 +123,8 @@ public class Searcher {
                 String currentDocDate = hashChecker.get(currentDocNo).getDocDate();
                 goodResults.get(i).setDate(currentDocDate);
             }
+            long end = System.currentTimeMillis();
+            double e = (double) end;
 
             //adding top 5 entities for the user to view
             if(withEntities) {
@@ -387,14 +395,16 @@ public class Searcher {
      * (determined by {@code isSemanticOnline} field
      * @return ArrayList of similar words
      */
-    public ArrayList<String> getSemanticallyCloseWords(ArrayList<String> query) {
-        try {
-            return  getSemanticallyCloseWordsOnline(query);
+    public ArrayList<String> getSemanticallyCloseWords(ArrayList<String> query, boolean isOnline) {
+        if (isOnline) {
+            try {
+                return getSemanticallyCloseWordsOnline(query);
+            } catch (Exception e) {
+                return getSemanticallyCloseWordsOffline(query);
+            }
         }
-        catch (Exception e)
-        {
+        else
             return getSemanticallyCloseWordsOffline(query);
-        }
     }
 
 
