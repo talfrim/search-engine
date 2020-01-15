@@ -80,8 +80,7 @@ public class ProgramStarter {
         dictionaryFileHandler.writeToFile(outputPath, toStemm);
 
 
-        System.out.println("dic: " + dic.size());
-        System.out.println("time to read and parse all files: " + (end - start));
+
 
     }
 
@@ -235,7 +234,6 @@ public class ProgramStarter {
             }
             showResultsWithIds(datas, showDatesIsSelected, showEntitiesCheckBoxIsSelected);
             long time2 = System.currentTimeMillis();
-            System.out.println("Total time: " + (time2-time1));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -277,7 +275,6 @@ public class ProgramStarter {
 
     @SuppressWarnings("Duplicates")
     private static void showResultsWithoutIds(ArrayList<DocumentDataToView> answer, boolean showDateIsSelected, boolean showEntitiesIsSelected) {
-        System.out.println("Showing results of single q");
         Stage stage = new Stage();
         TableView tableView = new TableView();
 
