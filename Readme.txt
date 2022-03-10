@@ -1,6 +1,6 @@
-Welcome to part 2 of the search engine! 
-Koren Ishlach 207964586		 									
-Tal Frimerman 207012055		 
+Java search engine.
+Koren Ishlach		 									
+Tal Frimerman	 
 *******************************************
 ************************************
 *************************
