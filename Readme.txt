@@ -1,4 +1,4 @@
-Java search engine.
+Java search engine. Preprocessing of the corpus and searching by query.
 Koren Ishlach		 									
 Tal Frimerman	 
 *******************************************
