@@ -45,6 +45,9 @@ public class TermBuilder {
             case ("MeasurementTerm"):
                 output = new MeasurementTerm(data);
                 break;
+            case ("UserSpecialTerm"):
+                output = new UserSpecialTerm(data);
+                break;
             default:
                 output = null;
         }

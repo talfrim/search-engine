@@ -53,6 +53,7 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
     public static TextField outputPathTextField;
     //part 2
     TextField singleQueryTextField;
+    TextField specialTermTextField;
     TextField queriesFilePathTextFiled;
     TextField resultFileTextField;
 
@@ -114,6 +115,8 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         singleQueryTextField = new TextField();
         singleQueryTextField.setText("Insert your query here");
         singleQueryTextField.setPrefSize(315, 40);
+        specialTermTextField = new TextField();
+        specialTermTextField.setPromptText("Special term");
         queriesFilePathTextFiled = new TextField();
         queriesFilePathTextFiled.setText("Or choose a file...");
         resultFileTextField = new TextField();
@@ -202,6 +205,9 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
         resultFileHBox = new HBox(resultFileTextField, resultsFilePathBrowseButton, writeResultsToFileCheckBox);
         resultFileHBox.setSpacing(5);
         mainVBox.getChildren().add(resultFileHBox);
+        HBox specialTermHBox = new HBox(specialTermTextField);
+        specialTermHBox.setSpacing(5);
+        mainVBox.getChildren().add(specialTermHBox);
         singleQuerySearchHBox = new HBox(singleQueryTextField, searchQueryFromTextButton);
         singleQuerySearchHBox.setSpacing(5);
         mainVBox.getChildren().add(singleQuerySearchHBox);
@@ -250,13 +256,13 @@ public class GUI extends Application implements EventHandler<ActionEvent> {
             if (singleQueryTextField.getText().equals("") || singleQueryTextField.getText().equals("Insert your query here"))
                 AlertBox.display("", "Please write a query and try again!");
             else
-                ProgramStarter.runSingleQuery(singleQueryTextField.getText(), semanticallySimilarCheckBox.isSelected(), writeResultsToFileCheckBox.isSelected(), showEntitiesCheckBox.isSelected(), stemCheckBox.isSelected(), onlineSemanticCheckBox.isSelected(), resultFileTextField.getText(), resultFileName, showDateCheckBox.isSelected(), inputPath);
+                ProgramStarter.runSingleQuery(singleQueryTextField.getText(), semanticallySimilarCheckBox.isSelected(), writeResultsToFileCheckBox.isSelected(), showEntitiesCheckBox.isSelected(), stemCheckBox.isSelected(), onlineSemanticCheckBox.isSelected(), resultFileTextField.getText(), resultFileName, showDateCheckBox.isSelected(), inputPath, specialTermTextField.getText());
         }
         if (event.getSource() == searchUsingFileButton) {
             if (queriesFilePathTextFiled.getText().equals("") || queriesFilePathTextFiled.getText().equals("Or choose a file..."))
                 AlertBox.display("", "Please choose file and try again!");
             else
-                ProgramStarter.runQueriesFromFile(queriesFilePathTextFiled.getText(), semanticallySimilarCheckBox.isSelected(), writeResultsToFileCheckBox.isSelected(), showEntitiesCheckBox.isSelected(), stemCheckBox.isSelected(), onlineSemanticCheckBox.isSelected(), resultFileTextField.getText(), resultFileName, inputPath, showDateCheckBox.isSelected());
+                ProgramStarter.runQueriesFromFile(queriesFilePathTextFiled.getText(), semanticallySimilarCheckBox.isSelected(), writeResultsToFileCheckBox.isSelected(), showEntitiesCheckBox.isSelected(), stemCheckBox.isSelected(), onlineSemanticCheckBox.isSelected(), resultFileTextField.getText(), resultFileName, inputPath, showDateCheckBox.isSelected(), specialTermTextField.getText());
         }
     }
 
