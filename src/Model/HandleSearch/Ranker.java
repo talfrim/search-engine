@@ -94,6 +94,8 @@ public class Ranker {
         }
         if(QueryContainsMaxTerm(docRankData))
             output += 0.1 * output;
+        if(docRankData.hasSpecialTerm())
+            output += 0.15 * output;
         return output;
     }
 

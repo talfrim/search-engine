@@ -11,6 +11,7 @@ import Model.TermsAndDocs.Terms.CapsTerm;
 import Model.TermsAndDocs.Terms.RegularTerm;
 import Model.TermsAndDocs.Terms.Term;
 import Model.TermsAndDocs.Terms.TermBuilder;
+import Model.TermsAndDocs.Terms.UserSpecialTerm;
 import com.medallia.word2vec.Word2VecModel;
 import Model.HandleSearch.datamuse.DatamuseQuery;
 import Model.HandleSearch.datamuse.JSONParse;
@@ -43,10 +44,11 @@ public class Searcher {
     private boolean withEntities;
     private ArrayList<String> queries;
     private boolean isOnline;
+    private String specialTerm;
 
 
     public Searcher(boolean isSemantic, boolean isStemm, Dictionary dictionary, HashSet<String> stopWords
-            , ArrayList<String> queries, boolean withEntities, boolean online) {
+            , ArrayList<String> queries, boolean withEntities, boolean online, String specialTerm) {
         this.isSemantic = isSemantic;
         this.isStemm = isStemm;
         this.dictionary = dictionary;
@@ -54,6 +56,7 @@ public class Searcher {
         this.withEntities = withEntities;
         this.queries = queries;
         this.isOnline=online;
+        this.specialTerm = specialTerm;
     }
 
     /**
@@ -69,9 +72,20 @@ public class Searcher {
         ArrayList<DocumentDataToView> [] allAnswers = new ArrayList[queries.size()];
         ArrayList<TermDocPair> []allQueryTerms = new ArrayList[allAnswers.length];
         ArrayList<TermDocPair> []allSemanticTerms = new ArrayList[allAnswers.length];
+        ArrayList<TermDocPair> specialList = null;
+        HashMap<Term, String> postDataForSpecial = null;
         for(int i = 0; i < allAnswers.length; i++){
             allQueryTerms[i] = new ArrayList<>();
             allSemanticTerms[i] = new ArrayList<>();
+        }
+
+        if(specialTerm != null && !specialTerm.equals("")){
+            ArrayList<String> sp = new ArrayList<>();
+            sp.add(specialTerm);
+            specialList = parseQueryAndHeader(sp,0);
+            ArrayList<TermDocPair>[] spArr = new ArrayList[1];
+            spArr[0] = specialList;
+            postDataForSpecial = getPostData(spArr);
         }
 
         for (int k = 0; k < allAnswers.length; k++) {
@@ -100,6 +114,10 @@ public class Searcher {
             HashMap<String, DocRankData> hashChecker = new HashMap<>();
             getDocsData(queryTermPostingData, hashChecker, 0);
             getDocsData(semanticTermPostingData, hashChecker, 1);
+            if(postDataForSpecial != null){
+                ArrayList<Pair<TermDocPair, String>> specialPostingData = findPostDataInHash(specialList, postDataForSpecial);
+                getDocsData(specialPostingData, hashChecker, 2);
+            }
 
             //ranking every relevant doc
             ArrayList<Pair<String, Double>> keepScores = new ArrayList<>();
@@ -213,9 +231,13 @@ public class Searcher {
                 if(recognizer == 0){
                     currentDocData.addQueryWordData(new Pair<>(currentTerm, appearInQuery), termTf, termDf);
                 }
-                else{
+                else if(recognizer == 1){
                     if(currentDocData != null)
                         currentDocData.addSimilarQueryWordData(new Pair<>(currentTerm, appearInQuery), termTf, termDf);
+                }
+                else if(recognizer == 2){
+                    if(currentDocData != null)
+                        currentDocData.setHasSpecialTerm(true);
                 }
             }
         }

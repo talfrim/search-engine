@@ -187,7 +187,7 @@ public class ProgramStarter {
     }
 
     @SuppressWarnings("Duplicates")
-    public static void runQueriesFromFile(String path, boolean similarWords, boolean writeResultToFileCheckBoxIsSelected, boolean showEntitiesCheckBoxIsSelected, boolean stemCheckBoxIsSelected, boolean onlineSemanticIsSelected, String resultFileText, String resultFileName, String inputPath, boolean showDatesIsSelected) {
+    public static void runQueriesFromFile(String path, boolean similarWords, boolean writeResultToFileCheckBoxIsSelected, boolean showEntitiesCheckBoxIsSelected, boolean stemCheckBoxIsSelected, boolean onlineSemanticIsSelected, String resultFileText, String resultFileName, String inputPath, boolean showDatesIsSelected, String specialTerm) {
         long time1 = System.currentTimeMillis();
         try {
             HashMap<String, String> queriesHash = QueryFileUtil.extractQueries(path);
@@ -213,7 +213,7 @@ public class ProgramStarter {
                 DocumentFileObject documentFileObject = DocumentFileObject.getInstance();
                 documentFileObject.setInstance(documentFileHandler.extractDocsData(generateDocsFiles(stemCheckBoxIsSelected, GUI.outputPathTextField.getText())));
             }
-            Searcher searcher = new Searcher(similarWords, stemIsSelected, dictionary, generateStopWords(inputPath), queries, entities, onlineIsSelected);
+            Searcher searcher = new Searcher(similarWords, stemIsSelected, dictionary, generateStopWords(inputPath), queries, entities, onlineIsSelected, specialTerm);
             ArrayList<QueryIDDocDataToView> datas = new ArrayList<>();
             ArrayList<DocumentDataToView>[] queryAnswers = searcher.search();
             for (int i = 0; i < queryAnswers.length; i++) {
@@ -256,7 +256,7 @@ public class ProgramStarter {
     }
 
     @SuppressWarnings("Duplicates")
-    public static void runSingleQuery(String query, boolean similarWords, boolean writeResultToFileIsSelected, boolean showEntitiesIsSelected, boolean stemCheckBoxIsSelected, boolean onlineSemanticIsSelected, String resultFileText, String resultFileName, boolean showDatesIsSelected, String inputPath) {
+    public static void runSingleQuery(String query, boolean similarWords, boolean writeResultToFileIsSelected, boolean showEntitiesIsSelected, boolean stemCheckBoxIsSelected, boolean onlineSemanticIsSelected, String resultFileText, String resultFileName, boolean showDatesIsSelected, String inputPath, String specialTerm) {
         boolean writeToFile = writeResultToFileIsSelected;
         boolean entities = showEntitiesIsSelected;
         if (dictionary == null || dictionary.dictionaryTable.size() == 0) {
@@ -278,7 +278,7 @@ public class ProgramStarter {
         }
         ArrayList<String> queryList = new ArrayList<>();
         queryList.add(query);
-        Searcher searcher = new Searcher(similarWords, stemCheckBoxIsSelected, dictionary, generateStopWords(inputPath), queryList, entities, onlineSemanticIsSelected);
+        Searcher searcher = new Searcher(similarWords, stemCheckBoxIsSelected, dictionary, generateStopWords(inputPath), queryList, entities, onlineSemanticIsSelected, specialTerm);
         ArrayList<DocumentDataToView>[] answer = searcher.search();
         showResultsWithoutIds(answer[0], showDatesIsSelected, showEntitiesIsSelected);
         if (writeToFile) {

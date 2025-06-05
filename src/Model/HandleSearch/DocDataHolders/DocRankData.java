@@ -25,6 +25,7 @@ public class DocRankData {
 
     private ArrayList<Pair<Term, Integer>> docHeaderStrings;
     private String docDate;
+    private boolean hasSpecialTerm = false;
 
      public DocRankData(String docNo){
          this.docNo = docNo;
@@ -147,5 +148,13 @@ public class DocRankData {
 
     public String getDocNo() {
         return docNo;
+    }
+
+    public boolean hasSpecialTerm() {
+        return hasSpecialTerm;
+    }
+
+    public void setHasSpecialTerm(boolean hasSpecialTerm) {
+        this.hasSpecialTerm = hasSpecialTerm;
     }
 }
